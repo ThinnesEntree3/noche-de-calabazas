@@ -1,6 +1,7 @@
 package com.juandiego.nochecalabazas;
 
 import android.app.Activity;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
@@ -16,6 +17,12 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         // La pantalla no se apaga mientras se proyecta
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // Usar toda la pantalla, incluida la zona de la cámara frontal (sin franja negra)
+        if (Build.VERSION.SDK_INT >= 28) {
+            WindowManager.LayoutParams lp = getWindow().getAttributes();
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            getWindow().setAttributes(lp);
+        }
 
         web = new WebView(this);
         WebSettings s = web.getSettings();

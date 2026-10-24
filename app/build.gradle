@@ -10,8 +10,8 @@ android {
         applicationId 'com.juandiego.nochecalabazas'
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode 3
+        versionName '1.2'
     }
 
     // Llave fija: así cada APK nueva se instala encima de la anterior sin borrar las partidas guardadas

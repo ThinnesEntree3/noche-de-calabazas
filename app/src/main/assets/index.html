@@ -903,13 +903,25 @@ $("salaDel").onclick = () => {
 
 /* ---------- Modo TV: en horizontal todo se ajusta a 16:9 ---------- */
 const app = document.querySelector(".app");
+// Lienzo base de 1280x720 que se estira a la proporción real de la pantalla (16:9, 20:9, 4:3...)
+const probe = document.createElement("div");
+probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)";
+document.body.appendChild(probe);
 function fit() {
   const w = innerWidth, h = innerHeight, tv = w > h && w >= 560;
   document.body.classList.toggle("tv", tv);
-  if (tv) {
-    const s = Math.min(w / 1280, h / 720);
-    app.style.transform = `translate(${(w - 1280 * s) / 2}px, ${(h - 720 * s) / 2}px) scale(${s})`;
-  } else app.style.transform = "";
+  if (!tv) { app.style.transform = app.style.width = app.style.height = app.style.paddingLeft = app.style.paddingRight = ""; return; }
+  const ar = w / h;
+  let W = 1280, H = 720;
+  if (ar > 16 / 9) W = Math.round(720 * ar); else H = Math.round(1280 / ar);
+  const s = w / W;
+  const cs = getComputedStyle(probe);
+  const inL = parseFloat(cs.paddingLeft) || 0, inR = parseFloat(cs.paddingRight) || 0;
+  app.style.width = W + "px"; app.style.height = H + "px";
+  // Respeta la cámara frontal o el borde curvo cuando la pantalla llega hasta allá
+  app.style.paddingLeft = Math.max(30, inL / s + 12) + "px";
+  app.style.paddingRight = Math.max(30, inR / s + 12) + "px";
+  app.style.transform = `scale(${s})`;
 }
 addEventListener("resize", fit);
 addEventListener("orientationchange", () => setTimeout(fit, 200));
