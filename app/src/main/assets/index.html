@@ -411,6 +411,12 @@ body.tv { overflow: hidden; }
     <textarea id="prizeText" aria-label="Premios de la ruleta"></textarea>
   </section>
   <section>
+    <h3>Ruleta de consuelo</h3>
+    <p>Sale cuando alguien pierde en la Envenenada. Los premios en dinero siempre son de <b>menos de $10.000</b> y nunca más que el premio del nivel donde perdió; los que pasen ese tope no aparecen. <b>Vuelve al juego</b> lo regresa a la Envenenada desde el nivel 1.</p>
+    <textarea id="consolText" aria-label="Premios de la ruleta de consuelo"></textarea>
+    <p class="note" id="consolNote"></p>
+  </section>
+  <section>
     <h3>Calabaza Envenenada</h3>
     <p>Premio de cada nivel, de menor a mayor. En cada nivel aparece una calabaza más y una envenenada más.</p>
     <textarea id="ladderText" aria-label="Premios por nivel" style="min-height:120px"></textarea>
@@ -432,9 +438,13 @@ body.tv { overflow: hidden; }
     <textarea id="podiumText" aria-label="Premios del podio" style="min-height:100px"></textarea>
     <div class="row">
       <label for="players">Jugadores <input id="players" type="number" min="4" max="60" class="chip" style="width:90px"></label>
-      <label for="bonusIn">Bono sorpresa <input id="bonusIn" type="text" class="chip" style="width:130px"></label>
-      <label for="eventsIn"><input id="eventsIn" type="checkbox"> Sorpresas (resurrección y bono)</label>
+      <label for="revIn">Resucitan por cada 10 jugadores <input id="revIn" type="number" min="0" max="3" class="chip" style="width:80px"></label>
     </div>
+    <div class="row">
+      <label for="bonusOnIn"><input id="bonusOnIn" type="checkbox"> Activar bono sorpresa</label>
+      <label for="bonusIn">Valor del bono <input id="bonusIn" type="text" class="chip" style="width:130px"></label>
+    </div>
+    <p class="note" id="ghostNote"></p>
   </section>
   <div class="row bar">
     <button class="big" id="save" style="font-size:1.4rem;padding:8px 26px">GUARDAR</button>
@@ -512,13 +522,15 @@ const PERSIST = true;
 /* ---------- Premios de ejemplo ---------- */
 const DEF = {
   prizes: ["$5.000", "Buena suerte para la próxima", "$10.000", "Gira otra vez", "$20.000", "Buena suerte para la próxima",
-           "$5.000", "Vuelve al juego", "$15.000", "Buena suerte para la próxima", "$10.000", "$40.000"],
+           "$5.000", "$15.000", "Buena suerte para la próxima", "$10.000", "$40.000", "Gira otra vez"],
+  consol: ["$2.000", "Buena suerte para la próxima", "$5.000", "Vuelve al juego", "$3.000", "Buena suerte para la próxima",
+           "$8.000", "Gira otra vez", "$2.000", "Buena suerte para la próxima", "$5.000", "Vuelve al juego"],
   ladder: ["$20.000", "$30.000", "$40.000", "$50.000"],
   basePk: 3,
   mines: ["$2.000", "$2.000", "$3.000", "$3.000", "$4.000", "$4.000", "$5.000", "$5.000", "$6.000", "$7.000", "$9.000"],
   skulls: 5,
   podium: ["$80.000", "$50.000", "$30.000"],
-  players: 20, bonus: "$10.000", events: true
+  players: 20, revPer10: 1, bonus: "$10.000", bonusOn: false
 };
 const kindOf = t => /buena suerte|sigue intentando|pierde/i.test(t) ? "lose"
   : /otra vez/i.test(t) ? "retry" : /vuelve al juego/i.test(t) ? "back" : "win";
@@ -543,7 +555,7 @@ const salaName = () => (salas.find(s => s.id === salaId) || {}).name || "";
 
 let cfg = {};
 let sound = true, current = "ghost", loading = false, consol = null;
-const G = { alive: [], out: [], places: {}, total: 20, busy: false };
+const G = { alive: [], out: [], places: {}, total: 20, revPlan: [], busy: false };
 const P = { level: 0, bad: [], locked: false, anim: false };
 const M = { cells: [], opened: [], status: "play", busy: false };
 
@@ -558,7 +570,7 @@ function saveState() {
   if (loading) return;
   LS.set(`sala:${salaId}:st3`, {
     mode: current, consol,
-    ghost: { alive: G.alive, out: G.out, places: G.places, total: G.total, msg: $("gMsg").textContent },
+    ghost: { alive: G.alive, out: G.out, places: G.places, total: G.total, revPlan: G.revPlan, msg: $("gMsg").textContent },
     poison: { level: P.level },
     mines: { cells: M.cells, opened: M.opened, status: M.status }
   });
@@ -697,8 +709,16 @@ const overlay = (p, opts) => new Promise(res => show(p, { ...opts, onClose: res 
 const wc = $("wheel"), wx = wc.getContext("2d");
 const SEG = ["#ff7a1a", "#2b1d45", "#c8213a", "#1a1229", "#ffb347", "#3a2660"];
 let angle = 0, spinning = false;
+const CONSOL_LIMIT = 10000;  // la ruleta de consuelo siempre da menos de $10.000
+function consolCap() { return consol ? Math.min(CONSOL_LIMIT - 1, money(cfg.ladder[Math.min(consol.level, cfg.ladder.length - 1)]) || CONSOL_LIMIT - 1) : Infinity; }
+function wheelList() {
+  if (!consol) return cfg.prizes;
+  const cap = consolCap();
+  const list = cfg.consol.filter(t => kindOf(t) !== "win" || money(t) <= cap);
+  return list.length >= 2 ? list : ["Buena suerte para la próxima", "Vuelve al juego"];
+}
 function drawWheel() {
-  const pr = cfg.prizes, n = pr.length, R = wc.width / 2, step = Math.PI * 2 / n;
+  const pr = wheelList(), n = pr.length, R = wc.width / 2, step = Math.PI * 2 / n;
   wx.clearRect(0, 0, wc.width, wc.height);
   wx.save(); wx.translate(R, R); wx.rotate(angle);
   for (let i = 0; i < n; i++) {
@@ -731,12 +751,13 @@ function drawWheel() {
 function renderConsol() {
   const c = $("consol");
   c.hidden = !consol;
-  if (consol) c.textContent = `Ruleta de consuelo: si sale "Vuelve al juego", regresa a la Envenenada en el nivel ${consol.level + 1}.`;
+  if (consol) c.textContent = `Ruleta de consuelo: premios de menos de ${fmt(CONSOL_LIMIT)}. Si sale "Vuelve al juego", regresa a la Envenenada desde el nivel 1.`;
+  drawWheel();
 }
 function spin() {
   if (spinning) return;
   spinning = true; $("spin").disabled = true; sfx.whoosh();
-  const pr = cfg.prizes, n = pr.length, step = Math.PI * 2 / n, target = Math.floor(Math.random() * n);
+  const pr = wheelList(), n = pr.length, step = Math.PI * 2 / n, target = Math.floor(Math.random() * n);
   const jitter = (Math.random() - .5) * step * .7, T = Math.PI * 2;
   const finalMod = -Math.PI / 2 - (target * step + step / 2) + jitter;
   const start = angle, base = start - (start % T);
@@ -759,8 +780,8 @@ function wheelResult(prize) {
   const k = kindOf(prize);
   if (k === "retry") return show(prize, { kind: "neutral", label: "¡Otra oportunidad!" });
   if (k === "back" && consol) {
-    const back = () => { const l = consol.level; consol = null; renderConsol(); mode("poison"); poisonStart(l); };
-    return show(prize, { kind: "win", label: `Regresa a la Envenenada en el nivel ${consol.level + 1}`, action: { label: "VOLVER AL JUEGO", fn: back }, onClose: back });
+    const back = () => { consol = null; renderConsol(); mode("poison"); poisonStart(0); };
+    return show(prize, { kind: "win", label: "Regresa a la Envenenada desde el nivel 1", action: { label: "VOLVER AL JUEGO", fn: back }, onClose: back });
   }
   if (k === "back") return show(prize, { kind: "neutral", label: "Juega otra ronda" });
   consol = null; renderConsol(); saveState();
@@ -933,12 +954,21 @@ function ghostStart() {
   G.total = cfg.players;
   G.alive = Array.from({ length: cfg.players }, (_, i) => i + 1);
   G.out = []; G.places = {}; G.busy = false;
+  G.revPlan = planRevives(G.total);
   ghostRender(); ghostMsg("Cada jugador con su número. ¡Que empiece el susto!"); ghostUI(); saveState();
 }
 function ghostRestore(s) {
   if (!s || !Array.isArray(s.alive) || !s.total || !s.alive.length) return ghostStart();
   G.total = s.total; G.alive = s.alive; G.out = s.out || []; G.places = s.places || {}; G.busy = false;
+  G.revPlan = Array.isArray(s.revPlan) ? s.revPlan : [];
   ghostRender(); ghostMsg(s.msg || ""); ghostUI();
+}
+// Por cada 10 jugadores resucita al menos uno: se decide al azar en qué momento de la partida
+function planRevives(total) {
+  const n = Math.floor(total / 10) * (cfg.revPer10 || 0);
+  const lo = cfg.podium.length + 3, hi = total - 1, range = [];
+  for (let v = lo; v <= hi; v++) range.push(v);
+  return shuffle(range).slice(0, n).sort((a, b) => b - a);
 }
 function badge(t, place) { t.classList.add("win"); t.insertAdjacentHTML("beforeend", `<span class="place">${ORD[place - 1] || place + "º"}</span>`); }
 function ghostRender() {
@@ -1002,8 +1032,8 @@ async function eliminate(fast) {
     await overlay(cfg.podium[0], { kind: "win", label: `¡Número ${w}, el Último Vivo!`, sound: sfx.big });
   }
 }
-async function surprise() {
-  if (G.out.length && Math.random() < .5) {
+async function revive() {
+  {
     const n = pickFrom(G.out);
     ghostMsg("¡Algo se mueve en el cementerio...!");
     await scan(G.out, n, 18);
@@ -1014,7 +1044,10 @@ async function surprise() {
     ghostUI(); saveState();
     await overlay(`Número ${n}`, { kind: "neutral", art: "zombie", label: "¡Resucitó y vuelve al juego!", sound: sfx.groan });
     ghostMsg(`El número ${n} salió de la tumba`);
-  } else {
+  }
+}
+async function bonusSurprise() {
+  {
     const n = pickFrom(G.alive);
     ghostMsg("Un fantasma generoso anda suelto...");
     await scan(G.alive, n, 18);
@@ -1025,7 +1058,8 @@ async function surprise() {
 async function scare(times) {
   if (G.busy || G.alive.length <= 1) return;
   G.busy = true; ghostUI();
-  if (cfg.events && times === 1 && G.alive.length > cfg.podium.length + 2 && Math.random() < .15) await surprise();
+  if (G.revPlan.length && G.out.length && G.alive.length <= G.revPlan[0]) { G.revPlan.shift(); await revive(); }
+  else if (cfg.bonusOn && times === 1 && G.alive.length > cfg.podium.length + 2 && Math.random() < .15) await bonusSurprise();
   else {
     const n = times === 1 ? 1 : Math.max(1, Math.min(times, G.alive.length - cfg.podium.length));
     ghostMsg(n > 1 ? "¡Susto triple!" : "El fantasma está escogiendo...");
@@ -1091,7 +1125,8 @@ function fillPanel(c) {
   $("panelSala").textContent = salaName();
   $("prizeText").value = c.prizes.join("\n"); $("ladderText").value = c.ladder.join("\n");
   $("basePk").value = String(c.basePk); $("minesText").value = c.mines.join("\n"); $("skullsIn").value = c.skulls;
-  $("podiumText").value = c.podium.join("\n"); $("players").value = c.players; $("bonusIn").value = c.bonus; $("eventsIn").checked = c.events;
+  $("podiumText").value = c.podium.join("\n"); $("players").value = c.players; $("bonusIn").value = c.bonus;
+  $("bonusOnIn").checked = !!c.bonusOn; $("revIn").value = c.revPer10; $("consolText").value = c.consol.join("\n");
   panelNotes();
 }
 function panelNotes() {
@@ -1100,8 +1135,12 @@ function panelNotes() {
   $("poisonOdds").textContent = lad.length ? `Nivel ${lad.length}: ${lad.length} de ${base + lad.length - 1} envenenadas. Llega al premio mayor más o menos 1 de cada ${Math.max(1, Math.round(1 / p))} personas.` : "";
   const mx = lines("minesText").reduce((s, v) => s + money(v), 0);
   $("minesMax").textContent = `Máximo por ronda: ${fmt(mx)} · ${lines("minesText").length + (+$("skullsIn").value || 0)} calabazas en total.`;
+  const over = lines("consolText").filter(t => kindOf(t) === "win" && money(t) >= CONSOL_LIMIT);
+  $("consolNote").textContent = over.length ? `No aparecerán por ser de ${fmt(CONSOL_LIMIT)} o más: ${over.join(", ")}.` : "Todos los premios están por debajo de $10.000.";
+  const pl = +$("players").value || 20, rv = Math.floor(pl / 10) * (+$("revIn").value || 0);
+  $("ghostNote").textContent = `Con ${pl} jugadores resucitan ${rv} por partida. ` + ($("bonusOnIn").checked ? "Bono sorpresa activado." : "Bono sorpresa apagado.");
 }
-["ladderText", "basePk", "minesText", "skullsIn"].forEach(id => $(id).addEventListener("input", panelNotes));
+["ladderText", "basePk", "minesText", "skullsIn", "consolText", "players", "revIn", "bonusOnIn"].forEach(id => $(id).addEventListener("input", panelNotes));
 $("bPrizes").onclick = () => { fillPanel(cfg); openMenu(false); $("panel").hidden = false; };
 $("close").onclick = () => { $("panel").hidden = true; };
 $("restore").onclick = () => fillPanel(JSON.parse(JSON.stringify(DEF)));
@@ -1115,8 +1154,12 @@ $("save").onclick = () => {
   cfg.prizes = pr; cfg.ladder = lad; cfg.basePk = Math.min(5, Math.max(2, +$("basePk").value || 3));
   cfg.mines = mi; cfg.skulls = Math.min(12, Math.max(1, Math.round(+$("skullsIn").value) || 5));
   cfg.podium = pod; cfg.players = Math.min(60, Math.max(pod.length + 1, Math.round(+$("players").value) || 20));
-  cfg.bonus = $("bonusIn").value.trim() || "$10.000"; cfg.events = $("eventsIn").checked;
+  cfg.bonus = $("bonusIn").value.trim() || "$10.000"; cfg.bonusOn = $("bonusOnIn").checked;
+  cfg.revPer10 = Math.min(3, Math.max(0, Math.round(+$("revIn").value) || 0));
+  const co = lines("consolText").slice(0, 24);
+  if (co.length >= 2) cfg.consol = co;
   persist(); drawWheel();
+  if (!G.busy) G.revPlan = G.revPlan.length || G.out.length ? G.revPlan : planRevives(G.total);
   if (!P.locked) poisonStart(Math.min(P.level, cfg.ladder.length - 1)); else renderLadder();
   if (!M.busy && oldMines !== JSON.stringify([cfg.mines, cfg.skulls])) minesStart(); else minesUI();
   if (!G.busy) { if (cfg.players !== oldPlayers) ghostStart(); else { ghostRender(); ghostUI(); } }
