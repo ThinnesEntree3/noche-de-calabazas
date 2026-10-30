@@ -3,6 +3,10 @@ name: Construir APK
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '*.html'
+      - '*.jpg'
+      - '*.png'
   workflow_dispatch:
 
 permissions:

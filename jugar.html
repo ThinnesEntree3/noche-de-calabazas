@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0} :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Noche de Calabazas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Rubik:wght@400;600;800&display=swap">
+<style>
+/* Layout: una pantalla para proyectar; encabezado con título y botón de menú, escenario central con el juego activo; menú y paneles flotantes */
+:root {
+  --night: #120d1c;
+  --night-2: #1d1530;
+  --line: #3a2c55;
+  --bone: #f3ead8;
+  --muted: #a99bbf;
+  --pumpkin: #ff7a1a;
+  --pumpkin-dark: #c4470a;
+  --candle: #ffd36b;
+  --blood: #c8213a;
+  --toxic: #9be36b;
+  --display: "Creepster", "Impact", fantasy;
+  --body: "Rubik", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  background: radial-gradient(ellipse at 50% 0%, #2a1b44 0%, var(--night) 60%) fixed, var(--night);
+  color: var(--bone); font-family: var(--body); overflow-x: hidden;
+}
+button { font-family: var(--body); cursor: pointer; }
+.app {
+  min-height: 100%; display: flex; flex-direction: column; gap: 12px; position: relative;
+  padding-block: 12px 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app > * { position: relative; z-index: 1; }
+
+/* Encabezado */
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h1 {
+  font-family: var(--display); font-weight: 400; margin: 0; min-width: 0;
+  font-size: clamp(1.8rem, 6vw, 4rem); line-height: .95; letter-spacing: .02em;
+  color: var(--pumpkin); text-shadow: 0 0 18px rgba(255,122,26,.45), 0 3px 0 #5a1d05;
+}
+.hud { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.hud-info { display: grid; text-align: right; line-height: 1.15; }
+.hud-info b { font-size: clamp(.9rem, 2.4vw, 1.2rem); }
+.hud-info span { font-size: clamp(.75rem, 2vw, .95rem); color: var(--muted); }
+.menu-btn {
+  background: var(--pumpkin); color: #1a0b00; border: 0; border-radius: 12px;
+  padding: 10px 16px; font-weight: 800; font-size: 1.05rem; display: flex; gap: 8px; align-items: center;
+}
+.menu-btn svg { width: 20px; height: 20px; }
+
+.chip {
+  background: var(--night-2); color: var(--bone); border: 1px solid var(--line);
+  border-radius: 999px; padding: 10px 16px; font-size: 1rem; font-weight: 600;
+}
+.chip[aria-pressed="true"] { background: var(--pumpkin); color: #1a0b00; border-color: var(--pumpkin); }
+.chip:focus-visible, .big:focus-visible, .pk:focus-visible, .menu-btn:focus-visible, .game:focus-visible { outline: 3px solid var(--candle); outline-offset: 3px; }
+.big {
+  font-family: var(--display); font-size: clamp(1.6rem, 5vw, 2.6rem); letter-spacing: .04em;
+  background: var(--pumpkin); color: #1a0b00; border: 0; border-radius: 14px;
+  padding: 10px 34px; box-shadow: 0 6px 0 var(--pumpkin-dark);
+}
+.big:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--pumpkin-dark); }
+.big:disabled { opacity: .45; }
+.big.alt { background: var(--candle); box-shadow: 0 6px 0 #a87a14; }
+.big.cash { background: var(--toxic); box-shadow: 0 6px 0 #4c8a2a; }
+
+.stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; min-height: 0; }
+.hint { color: var(--muted); font-size: 1rem; text-align: center; margin: 0; }
+
+/* Menú lateral */
+.backdrop { position: fixed; inset: 0; background: rgba(8,5,14,.6); z-index: 25; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 26; width: min(380px, 92vw);
+  background: var(--night-2); border-left: 2px solid var(--pumpkin); overflow-y: auto;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) 18px;
+  display: flex; flex-direction: column; gap: 12px;
+  animation: slideIn .22s ease-out;
+}
+@keyframes slideIn { from { transform: translateX(100%); } }
+.drawer h2 { margin: 6px 0 0; font-size: .8rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.games { display: grid; gap: 8px; }
+.game {
+  text-align: left; display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px;
+  background: var(--night); color: var(--bone); border: 2px solid var(--line);
+}
+.game b { font-size: 1.15rem; }
+.game span { color: var(--muted); font-size: .9rem; }
+.game[aria-current="true"] { border-color: var(--pumpkin); background: #2a1830; }
+.game[aria-current="true"] b { color: var(--pumpkin); }
+.drawer .row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Ruleta */
+.wheel-wrap { position: relative; width: min(82vmin, 620px); max-width: 100%; aspect-ratio: 1; }
+#wheel { width: 100%; height: 100%; display: block; border-radius: 50%; box-shadow: 0 0 0 10px #2a1d40, 0 0 60px rgba(255,122,26,.35); }
+.pointer {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%); z-index: 2;
+  border-left: 22px solid transparent; border-right: 22px solid transparent; border-top: 44px solid var(--candle);
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,.6));
+}
+.hub {
+  position: absolute; inset: 50% auto auto 50%; transform: translate(-50%,-50%);
+  width: 20%; aspect-ratio: 1; border-radius: 50%; background: var(--night);
+  border: 6px solid var(--candle); display: grid; place-items: center;
+}
+.hub svg { width: 70%; }
+.consol { margin: 0; color: var(--toxic); font-weight: 800; text-align: center; font-size: clamp(1rem, 2.6vw, 1.4rem); }
+
+/* Calabazas (botón compartido) */
+.pk { background: none; border: 0; padding: 0; position: relative; aspect-ratio: 1.1; color: var(--bone); transition: transform .2s, opacity .3s; min-width: 0; }
+.pk:hover:not(.open):not(:disabled) { transform: translateY(-4px) rotate(-2deg); }
+.pk svg { width: 100%; height: 100%; display: block; }
+.pk .num {
+  position: absolute; inset: 0; display: grid; place-items: center; padding-top: 14%;
+  font-family: var(--display); font-size: clamp(1.4rem, 4.6vw, 3.2rem); color: #2a1000; text-shadow: 0 1px 0 rgba(255,210,150,.5);
+}
+.pk .face { opacity: 0; transition: opacity .3s; }
+.pk.open .face { opacity: 1; }
+.pk.open .num { opacity: 0; }
+.pk.open svg { animation: popOpen .5s; }
+.pk .prize {
+  position: absolute; inset: 20% 6% 8%; display: grid; place-items: center; text-align: center;
+  font-weight: 800; font-size: clamp(.8rem, 2.6vw, 1.5rem); line-height: 1.05;
+  background: var(--night); border: 3px solid var(--candle); border-radius: 16px; padding: 4px;
+  transform: scale(0); transition: transform .35s cubic-bezier(.3,1.6,.5,1) .2s; color: var(--candle);
+}
+.pk.open .prize { transform: scale(1); }
+.pk.bad .prize { color: var(--toxic); border-color: var(--toxic); }
+.pk.dim { opacity: .4; }
+.pk.suspense svg { animation: wobble .12s infinite; filter: drop-shadow(0 0 14px var(--candle)); }
+@keyframes wobble { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) scale(1.03); } }
+@keyframes popOpen { 0% { transform: scale(1); } 40% { transform: scale(1.18) rotate(-6deg); } 100% { transform: scale(1); } }
+
+/* Envenenada */
+.poison-layout { display: grid; grid-template-columns: minmax(190px, 270px) minmax(0, 1fr); gap: clamp(16px, 3vw, 40px); width: min(100%, 1150px); align-items: center; }
+.ladder { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column-reverse; gap: 8px; }
+.ladder li {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  padding: 10px 14px; border-radius: 12px; background: var(--night-2); border: 2px solid transparent;
+  color: var(--muted); font-weight: 800; font-size: clamp(1rem, 2.4vw, 1.7rem); font-variant-numeric: tabular-nums;
+}
+.ladder li small { font-size: .55em; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; display: block; }
+.ladder li .odds { color: var(--toxic); font-size: 1.15em; letter-spacing: 0; text-transform: none; }
+.ladder li.done { color: var(--candle); }
+.ladder li.now { border-color: var(--pumpkin); color: var(--bone); animation: glow 1.6s ease-in-out infinite; }
+.ladder li.top { background: linear-gradient(90deg, #4a1426, var(--night-2)); }
+@keyframes glow { 50% { box-shadow: 0 0 26px rgba(255,122,26,.55); } }
+.poison-main { display: grid; gap: 16px; justify-items: center; min-width: 0; }
+.status { margin: 0; text-align: center; font-size: clamp(1.1rem, 3vw, 1.9rem); font-weight: 800; text-wrap: balance; }
+.status em { font-style: normal; color: var(--toxic); }
+.pk-row { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: clamp(8px, 2.4vw, 28px); width: min(100%, calc(var(--n, 3) * 210px)); }
+.pk-row.enter .pk { animation: dropIn .5s cubic-bezier(.3,1.5,.5,1) backwards; }
+@keyframes dropIn { from { transform: translateY(-60px) scale(.6); opacity: 0; } }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+@media (max-width: 720px) {
+  .poison-layout { grid-template-columns: 1fr; }
+  .ladder { flex-direction: row; overflow-x: auto; }
+  .ladder li { flex: 1 0 auto; flex-direction: column; align-items: center; padding: 6px 10px; gap: 2px; }
+}
+
+/* Busca Calabazas */
+.mines-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, 280px); gap: clamp(14px, 3vw, 36px); width: min(100%, 1150px); align-items: center; }
+.mgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(6px, 1.4vw, 16px); }
+.mgrid .pk .num { font-size: clamp(1.1rem, 3.6vw, 2.4rem); }
+.mgrid .pk .prize { font-size: clamp(.7rem, 2.2vw, 1.25rem); border-width: 2px; }
+.pot { display: grid; gap: 10px; text-align: center; background: var(--night-2); border: 2px solid var(--line); border-radius: 18px; padding: 16px; }
+.pot small { color: var(--muted); letter-spacing: .16em; text-transform: uppercase; font-weight: 600; font-size: .8rem; }
+.pot strong { font-family: var(--display); font-weight: 400; font-size: clamp(2.6rem, 8vw, 4.4rem); line-height: 1; color: var(--candle); font-variant-numeric: tabular-nums; }
+.pot p { margin: 0; color: var(--muted); font-size: .95rem; }
+.pot p b { color: var(--bone); }
+.pot .big { font-size: clamp(1.3rem, 3.6vw, 2rem); padding: 8px 18px; }
+@media (max-width: 720px) { .mines-layout { grid-template-columns: 1fr; } .pot { order: -1; } }
+
+/* Último Vivo */
+.ghost-wrap { width: min(100%, 1200px); display: grid; gap: 14px; }
+.ghost-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.count { font-weight: 800; font-size: clamp(1.1rem, 3vw, 2rem); font-variant-numeric: tabular-nums; }
+.count b { color: var(--candle); font-size: 1.4em; }
+.podium { display: flex; gap: 8px; flex-wrap: wrap; }
+.podium span { background: var(--night-2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: clamp(.85rem, 2vw, 1.15rem); }
+.podium span b { color: var(--candle); }
+.graves { position: relative; display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(58px, 9vw, 112px), 1fr)); gap: clamp(6px, 1.2vw, 14px); }
+.tomb {
+  aspect-ratio: .82; display: grid; place-items: center; position: relative;
+  border-radius: 48% 48% 8px 8px / 36% 36% 8px 8px;
+  background: linear-gradient(180deg, #4a3e66, #2b2242); border: 2px solid #5b4d7c; color: var(--bone);
+  font-family: var(--display); font-size: clamp(1.6rem, 4.6vw, 3.4rem); line-height: 1;
+  transition: background .12s, transform .12s, color .3s;
+}
+.tomb.hot { background: var(--pumpkin); border-color: var(--candle); color: #1a0b00; transform: scale(1.1); z-index: 2; box-shadow: 0 0 26px rgba(255,122,26,.7); }
+.tomb.out { background: #0e0a16; border-color: #241b35; color: #3d3354; }
+.tomb.out::after { content: "R.I.P."; position: absolute; bottom: 10%; font-family: var(--body); font-weight: 800; font-size: clamp(.55rem, 1.3vw, .9rem); letter-spacing: .15em; color: var(--blood); }
+.tomb.out.hot { background: #3f6b2a; color: var(--bone); }
+.tomb.win { background: var(--candle); color: #1a0b00; border-color: #fff6dc; }
+.tomb.win::after { content: none; }
+.tomb.back { animation: revive 1s ease-out; }
+@keyframes revive { 0% { background: #5fae2e; box-shadow: 0 0 40px #9be36b; } }
+.tomb .place { position: absolute; top: -10px; right: -6px; background: var(--candle); color: #1a0b00; font-family: var(--body); font-weight: 800; font-size: clamp(.6rem, 1.4vw, .95rem); border-radius: 999px; padding: 2px 7px; }
+.zrise { position: absolute; z-index: 4; pointer-events: none; overflow: hidden; border-radius: 48% 48% 8px 8px / 36% 36% 8px 8px; }
+.zrise svg { position: absolute; left: 8%; bottom: 0; width: 84%; height: 100%; animation: zUp 1.9s cubic-bezier(.2,.8,.3,1) forwards; }
+@keyframes zUp { 0% { transform: translateY(105%); } 55% { transform: translateY(6%) rotate(-5deg); } 72% { transform: translateY(12%) rotate(4deg); } 100% { transform: translateY(2%) rotate(0); } }
+.ghost-msg { margin: 0; min-height: 1.4em; text-align: center; font-size: clamp(1.1rem, 3.2vw, 2.1rem); font-weight: 800; color: var(--candle); text-wrap: balance; }
+@media (min-width: 900px) { .graves { grid-template-columns: repeat(10, minmax(0, 1fr)); } .tomb { aspect-ratio: 1; } }
+
+/* Revelar */
+.reveal { position: fixed; inset: 0; display: grid; place-items: center; z-index: 20; background: rgba(10,6,16,.86); padding: 24px max(16px, env(safe-area-inset-left, 0px)); }
+.reveal-card { text-align: center; display: grid; gap: 10px; justify-items: center; animation: pop .5s cubic-bezier(.3,1.6,.5,1); max-width: 100%; }
+.reveal-card small { font-size: clamp(1rem, 3vw, 1.6rem); color: var(--muted); letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
+.reveal-card strong {
+  font-family: var(--display); font-weight: 400; font-size: clamp(3rem, 14vw, 9rem); line-height: .95;
+  color: var(--candle); text-shadow: 0 0 30px rgba(255,211,107,.6), 0 5px 0 var(--blood); text-wrap: balance;
+}
+.reveal-card strong.long { font-size: clamp(2.2rem, 8vw, 5.6rem); }
+.reveal.lose .reveal-card strong { color: var(--toxic); text-shadow: 0 0 30px rgba(155,227,107,.5), 0 5px 0 #2a5a14; }
+.rev-art { height: clamp(110px, 24vmin, 220px); aspect-ratio: .8; overflow: hidden; }
+.rev-art:empty { display: none; }
+.rev-art svg { width: 100%; height: 100%; animation: zBig 1.4s cubic-bezier(.2,.8,.3,1); }
+.rev-art.skull svg { animation: skullIn .8s cubic-bezier(.3,1.6,.5,1); }
+@keyframes zBig { from { transform: translateY(100%); } }
+@keyframes skullIn { from { transform: scale(.2) rotate(-30deg); } }
+@keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.act { font-family: var(--display); font-size: clamp(1.3rem, 4vw, 2.3rem); margin-top: 8px; }
+
+/* Efectos */
+.flash { position: fixed; inset: 0; z-index: 19; pointer-events: none; opacity: 0; }
+.flash.on { animation: flash .7s ease-out; }
+@keyframes flash { 0% { opacity: .75; } 100% { opacity: 0; } }
+.shake { animation: shake .55s; }
+@keyframes shake { 10%,90% { transform: translate(-2px, 1px); } 20%,80% { transform: translate(5px, -2px); } 30%,50%,70% { transform: translate(-9px, 3px); } 40%,60% { transform: translate(9px, -3px); } }
+.bats { position: fixed; inset: 0; pointer-events: none; z-index: 21; }
+
+/* Paneles de ajustes */
+.panel {
+  position: fixed; inset: auto 0 0 0; z-index: 30; background: var(--night-2); border-top: 2px solid var(--pumpkin);
+  padding-block: 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 12px; max-height: 88%; overflow: auto;
+}
+.panel h2 { margin: 0; font-size: 1.3rem; }
+.panel h3 { margin: 0; font-size: 1.05rem; color: var(--pumpkin); }
+.panel section { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.panel p { margin: 0; color: var(--muted); font-size: .95rem; max-width: 70ch; }
+.panel p b { color: var(--bone); }
+.panel textarea { width: 100%; min-height: 150px; background: var(--night); color: var(--bone); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font: 1rem/1.5 var(--body); }
+.panel label { font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.panel input.chip, .panel select.chip { font-weight: 400; }
+.panel .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.panel .note { color: var(--toxic); font-weight: 600; }
+.panel .bar { position: sticky; bottom: calc(-16px - env(safe-area-inset-bottom, 0px)); background: var(--night-2); padding-block: 10px; }
+
+/* Modo TV: lienzo base 1280x720 que se estira a la proporción real de la pantalla */
+body.tv { overflow: hidden; }
+.tv .app { position: fixed; top: 0; left: 0; width: 1280px; height: 720px; min-height: 0; transform-origin: 0 0; padding: 14px 30px 18px; gap: 8px; overflow: hidden; }
+.tv h1 { font-size: 44px; white-space: nowrap; }
+.tv .hud-info b { font-size: 18px; } .tv .hud-info span { font-size: 14px; }
+.tv .menu-btn { font-size: 16px; padding: 9px 16px; }
+.tv .big { font-size: 38px; padding: 8px 40px; }
+.tv .stage { gap: 14px; }
+.tv #sWheel { flex-direction: row; gap: 70px; }
+.tv .wheel-wrap { width: 580px; }
+.tv .consol { font-size: 22px; max-width: 360px; }
+.tv .pk .num { font-size: 52px; }
+.tv .pk .prize { font-size: 22px; }
+.tv .hint { font-size: 17px; }
+.tv .poison-layout { grid-template-columns: 270px minmax(0, 1fr); width: 1210px; gap: 36px; }
+.tv .ladder { flex-direction: column-reverse; overflow: visible; }
+.tv .ladder li { flex-direction: row; align-items: center; padding: 10px 14px; font-size: 28px; }
+.tv .status { font-size: 28px; }
+.tv .pk-row { width: min(860px, calc(var(--n, 3) * 230px)); gap: 26px; }
+.tv .pk-row .pk .prize { font-size: 24px; }
+.tv .mines-layout { grid-template-columns: minmax(0, 1fr) 280px; width: 100%; max-width: 1400px; gap: 30px; }
+.tv .mgrid { grid-template-columns: repeat(var(--mc, 8), minmax(0, 1fr)); gap: 14px; }
+.tv .mgrid .pk .num { font-size: 40px; }
+.tv .mgrid .pk .prize { font-size: 19px; }
+.tv .pot strong { font-size: 66px; }
+.tv .pot p { font-size: 16px; }
+.tv .pot .big { font-size: 30px; }
+.tv .ghost-wrap { width: 1220px; gap: 12px; }
+.tv .count { font-size: 30px; }
+.tv .podium span { font-size: 18px; }
+.tv .graves { grid-template-columns: repeat(var(--cols, 10), minmax(0, 1fr)); gap: 12px; }
+.tv .tomb { aspect-ratio: 1; font-size: var(--tf, 52px); }
+.tv .tomb.out::after { font-size: 12px; }
+.tv .tomb .place { font-size: 14px; }
+.tv .ghost-msg { font-size: 30px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pk, .pk svg, .reveal-card, .drawer, .shake, .flash.on, .zrise svg, .rev-art svg, .ladder li.now, .pk-row.enter .pk { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header>
+    <h1>Noche de Calabazas</h1>
+    <div class="hud">
+      <div class="hud-info"><b id="nowGame">Último Vivo</b><span id="salaTag">Casino 1</span></div>
+      <button class="menu-btn" id="bMenu" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>Menú
+      </button>
+    </div>
+  </header>
+
+  <!-- Último Vivo -->
+  <section class="stage" id="sGhost" hidden>
+    <div class="ghost-wrap">
+      <div class="ghost-top">
+        <div class="count">Quedan <b id="gAlive">20</b> de <span id="gTotal">20</span></div>
+        <div class="podium" id="gPodium"></div>
+      </div>
+      <div class="graves" id="graves"></div>
+      <p class="ghost-msg" id="gMsg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="big" id="scare1">¡SUSTO!</button>
+        <button class="big alt" id="scare3">SUSTO TRIPLE</button>
+        <button class="chip" id="gRestart">Nueva partida</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Calabaza Envenenada -->
+  <section class="stage" id="sPoison" hidden>
+    <div class="poison-layout" id="poisonLayout">
+      <ol class="ladder" id="ladder" aria-label="Niveles de premio"></ol>
+      <div class="poison-main">
+        <p class="status" id="pStatus"></p>
+        <div class="pk-row" id="pRow"></div>
+        <div class="actions">
+          <button class="big alt" id="plant" disabled>PLANTARSE</button>
+          <button class="chip" id="pRestart">Nueva partida</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Busca Calabazas -->
+  <section class="stage" id="sMines" hidden>
+    <div class="mines-layout" id="minesLayout">
+      <div class="mgrid" id="mgrid"></div>
+      <div class="pot">
+        <small>Acumulado</small>
+        <strong id="mPot">$0</strong>
+        <p id="mInfo"></p>
+        <button class="big cash" id="mCash" disabled>COBRAR</button>
+        <button class="chip" id="mRestart">Nueva ronda</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ruleta -->
+  <section class="stage" id="sWheel" hidden>
+    <div class="wheel-wrap">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="900" height="900"></canvas>
+      <div class="hub" aria-hidden="true"><svg viewBox="0 0 220 200"><use href="#pumpkin"/><use href="#face"/></svg></div>
+    </div>
+    <div class="actions" style="flex-direction:column;align-items:center">
+      <p class="consol" id="consol" hidden></p>
+      <button class="big" id="spin">¡GIRAR!</button>
+    </div>
+  </section>
+</div>
+
+<div class="flash" id="flash"></div>
+<canvas class="bats" id="bats" aria-hidden="true"></canvas>
+
+<div class="reveal" id="reveal" hidden>
+  <div class="reveal-card">
+    <div class="rev-art" id="revArt"></div>
+    <small id="revLabel">¡Ganaste!</small>
+    <strong id="revPrize">$50.000</strong>
+    <button class="big act" id="revAction" hidden>GIRAR RULETA</button>
+    <small id="revHint">Toca para continuar</small>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop" hidden></div>
+<nav class="drawer" id="drawer" hidden aria-label="Menú">
+  <h2>Juegos</h2>
+  <div class="games">
+    <button class="game" data-mode="ghost"><b>Último Vivo</b><span>Eliminación para todo el salón</span></button>
+    <button class="game" data-mode="poison"><b>Calabaza Envenenada</b><span>Sube de nivel o plántate a tiempo</span></button>
+    <button class="game" data-mode="mines"><b>Busca Calabazas</b><span>Suma premios y esquiva las calaveras</span></button>
+    <button class="game" data-mode="wheel"><b>Ruleta</b><span>Premios menores y consuelo</span></button>
+  </div>
+  <h2>Ajustes</h2>
+  <div class="row">
+    <button class="chip" id="bPrizes">Premios</button>
+    <button class="chip" id="bSala">Salas</button>
+    <button class="chip" id="bSound" aria-pressed="true">Sonido</button>
+    <button class="chip" id="bFull">Pantalla completa</button>
+  </div>
+  <div class="row"><button class="chip" id="bCloseMenu">Cerrar menú</button></div>
+</nav>
+
+<div class="panel" id="panel" hidden>
+  <h2>Premios de <span id="panelSala"></span></h2>
+  <section>
+    <h3>Ruleta</h3>
+    <p>Un premio por línea. Especiales: <b>Gira otra vez</b> (vuelve a girar), <b>Buena suerte para la próxima</b> (pierde) y <b>Vuelve al juego</b> (regresa a la Envenenada en el nivel donde perdió). Para que algo salga más seguido, escríbelo varias veces.</p>
+    <textarea id="prizeText" aria-label="Premios de la ruleta"></textarea>
+  </section>
+  <section>
+    <h3>Ruleta de consuelo</h3>
+    <p>Sale cuando alguien pierde en la Envenenada. Los premios en dinero van de <b>$10.000</b> hasta el premio del nivel donde perdió. Los que se salgan de ese rango no aparecen en ese giro. <b>Vuelve al juego</b> lo regresa a la Envenenada desde el nivel 1.</p>
+    <textarea id="consolText" aria-label="Premios de la ruleta de consuelo"></textarea>
+    <p class="note" id="consolNote"></p>
+  </section>
+  <section>
+    <h3>Calabaza Envenenada</h3>
+    <p>Premio de cada nivel, de menor a mayor. En cada nivel aparece una calabaza más y una envenenada más.</p>
+    <textarea id="ladderText" aria-label="Premios por nivel" style="min-height:120px"></textarea>
+    <label for="basePk">Calabazas en el nivel 1
+      <select id="basePk" class="chip"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+    </label>
+    <p class="note" id="poisonOdds"></p>
+  </section>
+  <section>
+    <h3>Busca Calabazas</h3>
+    <p>Lo que trae cada calabaza buena, uno por línea. La suma es lo máximo que se puede ganar en una ronda.</p>
+    <textarea id="minesText" aria-label="Premios de Busca Calabazas"></textarea>
+    <label for="skullsIn">Calaveras escondidas <input id="skullsIn" type="number" min="1" max="12" class="chip" style="width:90px"></label>
+    <p class="note" id="minesMax"></p>
+  </section>
+  <section>
+    <h3>Último Vivo</h3>
+    <p>Premios del podio, del 1.er lugar hacia abajo, uno por línea.</p>
+    <textarea id="podiumText" aria-label="Premios del podio" style="min-height:100px"></textarea>
+    <div class="row">
+      <label for="players">Jugadores <input id="players" type="number" min="4" max="60" class="chip" style="width:90px"></label>
+      <label for="revIn">Resucitan por cada 10 jugadores <input id="revIn" type="number" min="0" max="3" class="chip" style="width:80px"></label>
+    </div>
+    <div class="row">
+      <label for="bonusOnIn"><input id="bonusOnIn" type="checkbox"> Activar bono sorpresa</label>
+      <label for="bonusIn">Valor del bono <input id="bonusIn" type="text" class="chip" style="width:130px"></label>
+    </div>
+    <p class="note" id="ghostNote"></p>
+  </section>
+  <div class="row bar">
+    <button class="big" id="save" style="font-size:1.4rem;padding:8px 26px">GUARDAR</button>
+    <button class="chip" id="restore">Restaurar ejemplo</button>
+    <button class="chip" id="close">Cerrar</button>
+  </div>
+</div>
+
+<div class="panel" id="salasPanel" hidden>
+  <h2>Salas</h2>
+  <p>Cada sala guarda su propia partida y sus propios premios. Al cerrar la app, todo sigue donde quedó. Toca una sala para pasarte a ella.</p>
+  <div class="row" id="salaList"></div>
+  <div class="row">
+    <input id="salaName" class="chip" type="text" placeholder="Nombre, ej. Casino Norte" style="flex:1;min-width:200px" aria-label="Nombre de la sala">
+    <button class="chip" id="salaAdd">Crear sala nueva</button>
+    <button class="chip" id="salaRename">Renombrar esta sala</button>
+  </div>
+  <div class="row">
+    <button class="chip" id="salaDel">Borrar esta sala</button>
+    <button class="chip" id="salaClose">Cerrar</button>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="pkg" cx="45%" cy="40%" r="65%"><stop offset="0" stop-color="#ffa64d"/><stop offset=".6" stop-color="#ff7a1a"/><stop offset="1" stop-color="#b8420a"/></radialGradient>
+    <radialGradient id="pkv" cx="45%" cy="40%" r="65%"><stop offset="0" stop-color="#b9f27a"/><stop offset=".6" stop-color="#5fae2e"/><stop offset="1" stop-color="#2a5a14"/></radialGradient>
+    <symbol id="pumpkin" viewBox="0 0 220 200">
+      <path d="M104 40 C100 20 108 8 122 4 L126 12 C116 16 114 26 116 40 Z" fill="#3f6b2a"/>
+      <ellipse cx="60" cy="118" rx="52" ry="72" fill="url(#pkg)"/>
+      <ellipse cx="160" cy="118" rx="52" ry="72" fill="url(#pkg)"/>
+      <ellipse cx="110" cy="118" rx="58" ry="78" fill="url(#pkg)"/>
+      <path d="M110 44 C96 80 96 156 110 194 M110 44 C124 80 124 156 110 194" stroke="#a83a08" stroke-width="3" fill="none" opacity=".6"/>
+    </symbol>
+    <symbol id="face" viewBox="0 0 220 200">
+      <g fill="#ffd36b"><path d="M70 100 L90 80 L102 104 Z"/><path d="M150 100 L130 80 L118 104 Z"/>
+      <path d="M62 132 Q110 180 158 132 L146 140 L134 132 L122 144 L110 132 L98 144 L86 132 L74 140 Z"/></g>
+    </symbol>
+    <symbol id="poison" viewBox="0 0 220 200">
+      <path d="M104 40 C100 20 108 8 122 4 L126 12 C116 16 114 26 116 40 Z" fill="#2b1d45"/>
+      <ellipse cx="60" cy="118" rx="52" ry="72" fill="url(#pkv)"/>
+      <ellipse cx="160" cy="118" rx="52" ry="72" fill="url(#pkv)"/>
+      <ellipse cx="110" cy="118" rx="58" ry="78" fill="url(#pkv)"/>
+      <g stroke="#14240a" stroke-width="9" stroke-linecap="round"><path d="M66 82 L94 108 M94 82 L66 108"/><path d="M126 82 L154 108 M154 82 L126 108"/></g>
+      <path d="M70 150 Q90 136 110 150 Q130 164 150 150" stroke="#14240a" stroke-width="8" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="skull" viewBox="0 0 220 200">
+      <path d="M110 22 C58 22 34 60 38 100 C40 122 52 134 62 140 L62 172 L158 172 L158 140 C168 134 180 122 182 100 C186 60 162 22 110 22 Z" fill="#efe6d2"/>
+      <ellipse cx="80" cy="102" rx="20" ry="22" fill="#1d1530"/><ellipse cx="140" cy="102" rx="20" ry="22" fill="#1d1530"/>
+      <path d="M110 122 L100 142 L120 142 Z" fill="#1d1530"/>
+      <path d="M80 150 V172 M96 150 V172 M110 150 V172 M124 150 V172 M140 150 V172" stroke="#1d1530" stroke-width="5"/>
+      <circle cx="80" cy="104" r="6" fill="#9be36b"/><circle cx="140" cy="104" r="6" fill="#9be36b"/>
+    </symbol>
+    <symbol id="zombie" viewBox="0 0 120 150">
+      <path d="M22 78 L6 22 L18 18 L36 70 Z" fill="#7fae5a"/>
+      <path d="M98 78 L114 22 L102 18 L84 70 Z" fill="#7fae5a"/>
+      <circle cx="11" cy="17" r="9" fill="#7fae5a"/><circle cx="109" cy="17" r="9" fill="#7fae5a"/>
+      <path d="M4 10 L6 2 M11 8 L12 0 M18 10 L20 3 M102 10 L100 2 M109 8 L108 0 M116 10 L114 3" stroke="#7fae5a" stroke-width="4" stroke-linecap="round"/>
+      <path d="M28 88 Q60 74 92 88 L98 150 L22 150 Z" fill="#4b3a6b"/>
+      <path d="M44 150 L52 132 L60 150 L68 136 L76 150" fill="#120d1c"/>
+      <circle cx="60" cy="58" r="30" fill="#8fbf68"/>
+      <path d="M38 40 L44 46 M50 32 L52 41 M64 31 L62 40 M76 36 L72 44" stroke="#2a3f1c" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="48" cy="56" r="9" fill="#f3ead8"/><circle cx="72" cy="53" r="7" fill="#f3ead8"/>
+      <circle cx="49" cy="58" r="3.5" fill="#c8213a"/><circle cx="73" cy="54" r="3" fill="#c8213a"/>
+      <path d="M44 74 Q60 66 78 76" stroke="#2a3f1c" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M50 72 V78 M58 70 V77 M66 71 V78" stroke="#f3ead8" stroke-width="3"/>
+    </symbol>
+  </defs>
+</svg>
+
+<script>
+const $ = id => document.getElementById(id);
+const PERSIST = true;
+
+/* ---------- Premios de ejemplo ---------- */
+const DEF = {
+  prizes: ["$5.000", "Buena suerte para la próxima", "$10.000", "Gira otra vez", "$20.000", "Buena suerte para la próxima",
+           "$5.000", "$15.000", "Buena suerte para la próxima", "$10.000", "$40.000", "Gira otra vez"],
+  consol: ["$10.000", "Buena suerte para la próxima", "$15.000", "Vuelve al juego", "$10.000", "Buena suerte para la próxima",
+           "$20.000", "Gira otra vez", "$12.000", "Buena suerte para la próxima", "$15.000", "Vuelve al juego"],
+  ladder: ["$20.000", "$30.000", "$40.000", "$50.000"],
+  basePk: 3,
+  mines: ["$2.000", "$2.000", "$3.000", "$3.000", "$4.000", "$4.000", "$5.000", "$5.000", "$6.000", "$7.000", "$9.000"],
+  skulls: 5,
+  podium: ["$80.000", "$50.000", "$30.000"],
+  players: 20, revPer10: 1, bonus: "$10.000", bonusOn: false
+};
+const kindOf = t => /buena suerte|sigue intentando|pierde/i.test(t) ? "lose"
+  : /otra vez/i.test(t) ? "retry" : /vuelve al juego/i.test(t) ? "back" : "win";
+const money = t => +String(t).replace(/[^\d]/g, "") || 0;
+const fmt = n => "$" + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pickFrom = a => a[Math.floor(Math.random() * a.length)];
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- Guardado y salas ---------- */
+const LS = {
+  get(k) { if (!PERSIST) return null; try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+  set(k, v) { if (!PERSIST) return; try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+let salas = LS.get("salas");
+if (!Array.isArray(salas) || !salas.length) salas = [{ id: "s1", name: "Casino 1" }];
+let salaId = LS.get("salaActual");
+if (!salas.some(s => s.id === salaId)) salaId = salas[0].id;
+const salaName = () => (salas.find(s => s.id === salaId) || {}).name || "";
+
+let cfg = {};
+let sound = true, current = "ghost", loading = false, consol = null;
+const G = { alive: [], out: [], places: {}, total: 20, revPlan: [], busy: false };
+const P = { level: 0, bad: [], locked: false, anim: false };
+const M = { cells: [], opened: [], status: "play", busy: false };
+
+function loadConfig() {
+  const saved = LS.get(`sala:${salaId}:cfg3`) || {};
+  cfg = Object.assign(JSON.parse(JSON.stringify(DEF)), saved);
+}
+function persist() {
+  LS.set(`sala:${salaId}:cfg3`, cfg); LS.set("salas", salas); LS.set("salaActual", salaId);
+}
+function saveState() {
+  if (loading) return;
+  LS.set(`sala:${salaId}:st3`, {
+    mode: current, consol,
+    ghost: { alive: G.alive, out: G.out, places: G.places, total: G.total, revPlan: G.revPlan, msg: $("gMsg").textContent },
+    poison: { level: P.level },
+    mines: { cells: M.cells, opened: M.opened, status: M.status }
+  });
+}
+
+/* ---------- Sonido ---------- */
+let ac, nbuf;
+function audio() {
+  if (!sound) return null;
+  try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === "suspended") ac.resume(); return ac; } catch (e) { return null; }
+}
+function tone(f, type = "sine", t = 0, d = .2, v = .15, f2) {
+  const a = audio(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain(), st = a.currentTime + t;
+  o.type = type; o.frequency.setValueAtTime(f, st);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, st + d);
+  g.gain.setValueAtTime(.0001, st); g.gain.exponentialRampToValueAtTime(v, st + .015); g.gain.exponentialRampToValueAtTime(.0001, st + d);
+  o.connect(g).connect(a.destination); o.start(st); o.stop(st + d + .05);
+}
+function noise(t = 0, d = .3, v = .2, freq = 1000, type = "bandpass") {
+  const a = audio(); if (!a) return;
+  if (!nbuf) { nbuf = a.createBuffer(1, a.sampleRate * 2, a.sampleRate); const c = nbuf.getChannelData(0); for (let i = 0; i < c.length; i++) c[i] = Math.random() * 2 - 1; }
+  const s = a.createBufferSource(), fl = a.createBiquadFilter(), g = a.createGain(), st = a.currentTime + t;
+  s.buffer = nbuf; fl.type = type; fl.frequency.value = freq;
+  g.gain.setValueAtTime(v, st); g.gain.exponentialRampToValueAtTime(.0001, st + d);
+  s.connect(fl).connect(g).connect(a.destination); s.start(st); s.stop(st + d + .05);
+}
+const sfx = {
+  tick: () => tone(900, "square", 0, .05, .07),
+  fanfare: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, "triangle", i * .14, .38, .18)),
+  big: () => { [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, "triangle", i * .12, .4, .17)); noise(.8, .9, .1, 6000, "highpass"); },
+  cackle: () => { for (let i = 0; i < 6; i++) tone(700 - i * 30, "sawtooth", i * .09, .08, .09, 380); },
+  drumroll: (d = .9) => { const n = Math.round(d / .045); for (let i = 0; i < n; i++) noise(i * .045, .04, .08 + .16 * i / n, 1800); },
+  chime: lvl => [0, 4, 7, 12].forEach((s, i) => tone(440 * Math.pow(2, (s + lvl * 2) / 12), "triangle", i * .08, .45, .14)),
+  bubbles: () => { for (let i = 0; i < 16; i++) tone(160 + Math.random() * 220, "sine", i * .07 + Math.random() * .04, .14, .12, 520 + Math.random() * 500); },
+  drone: () => { tone(55, "sawtooth", 0, 1.8, .12, 38); tone(58.5, "sawtooth", 0, 1.8, .08, 40); },
+  boom: () => { noise(0, .8, .5, 220, "lowpass"); tone(90, "sine", 0, .7, .35, 35); },
+  chaChing: () => { noise(0, .09, .3, 4000, "highpass"); tone(1318, "square", .05, .16, .1); tone(1760, "square", .13, .5, .1); for (let i = 0; i < 7; i++) tone(2000 + Math.random() * 1600, "triangle", .25 + i * .06, .09, .06); },
+  whoosh: () => noise(0, .4, .14, 700, "lowpass"),
+  groan: () => {
+    const a = audio(); if (!a) return;
+    const o = a.createOscillator(), lfo = a.createOscillator(), lg = a.createGain(), fl = a.createBiquadFilter(), g = a.createGain(), st = a.currentTime;
+    o.type = "sawtooth"; o.frequency.setValueAtTime(110, st); o.frequency.exponentialRampToValueAtTime(62, st + 1.8);
+    lfo.frequency.value = 6; lg.gain.value = 9; lfo.connect(lg).connect(o.frequency);
+    fl.type = "lowpass"; fl.frequency.value = 650;
+    g.gain.setValueAtTime(.0001, st); g.gain.exponentialRampToValueAtTime(.22, st + .25); g.gain.exponentialRampToValueAtTime(.0001, st + 1.9);
+    o.connect(fl).connect(g).connect(a.destination); o.start(st); lfo.start(st); o.stop(st + 2); lfo.stop(st + 2);
+    noise(0, .7, .18, 300, "lowpass");
+  }
+};
+
+/* ---------- Partículas: murciélagos, chispas, burbujas, monedas, tierra ---------- */
+const bc = $("bats"), bx = bc.getContext("2d");
+let bats = [], parts = [];
+function size() { bc.width = innerWidth * devicePixelRatio; bc.height = innerHeight * devicePixelRatio; }
+addEventListener("resize", size); size();
+for (let i = 0; i < 7; i++) bats.push({ x: Math.random(), y: Math.random() * .5, s: .4 + Math.random() * .6, v: .0006 + Math.random() * .001, p: Math.random() * 6 });
+function centerOf(el) { const r = el.getBoundingClientRect(); return [(r.left + r.width / 2) / innerWidth, (r.top + r.height / 2) / innerHeight]; }
+function burst(x = .5, y = .5, n = 120, colors = ["#ff7a1a", "#ffd36b", "#c8213a", "#f3ead8"], sp = .02) {
+  for (let i = 0; i < n; i++) parts.push({ k: "sq", x, y, vx: (Math.random() - .5) * sp, vy: (Math.random() - .8) * sp, l: 1, c: colors[i % colors.length], r: 7 });
+}
+function bubbles(x, y, n = 46) {
+  for (let i = 0; i < n; i++) parts.push({ k: "bub", x: x + (Math.random() - .5) * .08, y: y + Math.random() * .05, vx: (Math.random() - .5) * .002, vy: -.002 - Math.random() * .005, l: 1.2, c: pickFrom(["#9be36b", "#5fae2e", "#c6f59a"]), r: 4 + Math.random() * 12, ph: Math.random() * 6 });
+}
+function coinRain(n = 70) {
+  for (let i = 0; i < n; i++) parts.push({ k: "coin", x: Math.random(), y: -.05 - Math.random() * .6, vx: 0, vy: .004 + Math.random() * .005, l: 2, c: "#ffd36b", r: 9 + Math.random() * 7, ph: Math.random() * 6 });
+}
+function dirt(x, y, n = 30) {
+  for (let i = 0; i < n; i++) parts.push({ k: "sq", x: x + (Math.random() - .5) * .05, y, vx: (Math.random() - .5) * .012, vy: -.006 - Math.random() * .01, l: 1, c: pickFrom(["#5a4030", "#3d2a1e", "#7a5a40"]), r: 5 + Math.random() * 5 });
+}
+function drawBat(x, y, s, f) {
+  const w = 28 * s * devicePixelRatio, flap = Math.sin(f) * .6;
+  bx.save(); bx.translate(x, y); bx.fillStyle = "#05030a";
+  bx.beginPath(); bx.moveTo(0, 0);
+  bx.quadraticCurveTo(-w * .5, -w * flap, -w, -w * .1 * flap); bx.quadraticCurveTo(-w * .6, w * .15, -w * .3, w * .05);
+  bx.quadraticCurveTo(-w * .15, w * .25, 0, w * .12); bx.quadraticCurveTo(w * .15, w * .25, w * .3, w * .05);
+  bx.quadraticCurveTo(w * .6, w * .15, w, -w * .1 * flap); bx.quadraticCurveTo(w * .5, -w * flap, 0, 0); bx.fill(); bx.restore();
+}
+function loop() {
+  const W = bc.width, H = bc.height, d = devicePixelRatio;
+  bx.clearRect(0, 0, W, H);
+  bx.globalAlpha = .5;
+  bats.forEach(b => { if (!reduce) { b.x += b.v; b.p += .25; } if (b.x > 1.1) b.x = -.1; drawBat(b.x * W, (b.y + Math.sin(b.p * .05) * .02) * H, b.s, b.p); });
+  parts.forEach(p => {
+    if (p.k === "bub") { p.ph += .15; p.x += p.vx + Math.sin(p.ph) * .0007; p.y += p.vy; p.l -= .012; }
+    else if (p.k === "coin") { p.ph += .2; p.y += p.vy; p.l -= .006; }
+    else { p.x += p.vx; p.y += p.vy; p.vy += .0004; p.l -= .009; }
+    bx.globalAlpha = Math.max(0, Math.min(1, p.l)); bx.fillStyle = p.c;
+    if (p.k === "bub") { bx.beginPath(); bx.arc(p.x * W, p.y * H, p.r * d, 0, 7); bx.fill(); }
+    else if (p.k === "coin") {
+      bx.beginPath(); bx.ellipse(p.x * W, p.y * H, Math.max(1, Math.abs(Math.cos(p.ph)) * p.r * d), p.r * d, 0, 0, 7); bx.fill();
+      bx.strokeStyle = "#a87a14"; bx.lineWidth = 2 * d; bx.stroke();
+    } else bx.fillRect(p.x * W, p.y * H, p.r * d, p.r * d);
+  });
+  bx.globalAlpha = 1; parts = parts.filter(p => p.l > 0 && p.y < 1.2);
+  requestAnimationFrame(loop);
+}
+loop();
+function flash(color) { const f = $("flash"); f.style.background = color; f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); }
+function shake(el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
+
+/* ---------- Pantalla de resultado ---------- */
+const reveal = $("reveal");
+let revOpts = {};
+const ART = {
+  zombie: '<svg viewBox="0 0 120 150"><use href="#zombie"/></svg>',
+  skull: '<svg viewBox="0 0 220 200"><use href="#skull"/></svg>',
+  poison: '<svg viewBox="0 0 220 200"><use href="#poison"/></svg>'
+};
+function show(p, opts = {}) {
+  revOpts = opts;
+  const k = opts.kind || (kindOf(p) === "lose" ? "lose" : "win");
+  reveal.classList.toggle("lose", k === "lose");
+  $("revArt").className = "rev-art" + (opts.art && opts.art !== "zombie" ? " skull" : "");
+  $("revArt").innerHTML = opts.art ? ART[opts.art] : "";
+  $("revLabel").textContent = opts.label || (k === "lose" ? "¡Truco!" : "¡Dulce premio!");
+  const s = $("revPrize"); s.textContent = p; s.classList.toggle("long", String(p).length > 12);
+  const act = $("revAction"); act.hidden = !opts.action;
+  if (opts.action) act.textContent = opts.action.label;
+  $("revHint").textContent = opts.action ? "Toca afuera para cerrar" : "Toca para continuar";
+  reveal.hidden = false;
+  if (opts.sound) opts.sound();
+  else if (k === "lose") sfx.cackle();
+  else if (k === "neutral") sfx.chime(2);
+  else { sfx.fanfare(); burst(); }
+}
+reveal.addEventListener("click", e => {
+  reveal.hidden = true;
+  const o = revOpts; revOpts = {};
+  if (e.target.id === "revAction" && o.action) o.action.fn();
+  else if (o.onClose) o.onClose();
+});
+const overlay = (p, opts) => new Promise(res => show(p, { ...opts, onClose: res }));
+
+/* ---------- Ruleta ---------- */
+const wc = $("wheel"), wx = wc.getContext("2d");
+const SEG = ["#ff7a1a", "#2b1d45", "#c8213a", "#1a1229", "#ffb347", "#3a2660"];
+let angle = 0, spinning = false;
+const CONSOL_MIN = 10000;  // la ruleta de consuelo da mínimo $10.000 y nunca más que el premio del nivel donde perdió
+function consolCap() { return consol ? money(cfg.ladder[Math.min(consol.level, cfg.ladder.length - 1)]) || CONSOL_MIN : Infinity; }
+function wheelList() {
+  if (!consol) return cfg.prizes;
+  const cap = consolCap();
+  const list = cfg.consol.filter(t => kindOf(t) !== "win" || (money(t) >= CONSOL_MIN && money(t) <= cap));
+  return list.length >= 2 ? list : ["Buena suerte para la próxima", "Vuelve al juego"];
+}
+function drawWheel() {
+  const pr = wheelList(), n = pr.length, R = wc.width / 2, step = Math.PI * 2 / n;
+  wx.clearRect(0, 0, wc.width, wc.height);
+  wx.save(); wx.translate(R, R); wx.rotate(angle);
+  for (let i = 0; i < n; i++) {
+    const k = kindOf(pr[i]);
+    const c = k === "lose" ? "#0e0a16" : k === "retry" ? "#3f6b2a" : k === "back" ? "#5b2a7a" : SEG[i % SEG.length];
+    wx.beginPath(); wx.moveTo(0, 0); wx.arc(0, 0, R - 4, i * step, (i + 1) * step); wx.closePath();
+    wx.fillStyle = c; wx.fill(); wx.strokeStyle = "#120d1c"; wx.lineWidth = 4; wx.stroke();
+    wx.save(); wx.rotate(i * step + step / 2); wx.textAlign = "right"; wx.textBaseline = "middle";
+    wx.fillStyle = ["#ff7a1a", "#ffb347"].includes(c) ? "#1a0b00" : k === "lose" ? "#9be36b" : "#f3ead8";
+    const txt = pr[i], words = txt.split(" ");
+    let lines = [txt];
+    if (txt.length > 12 && words.length > 1) {
+      let best = 1, diff = 1e9;
+      for (let j = 1; j < words.length; j++) { const d = Math.abs(words.slice(0, j).join(" ").length - words.slice(j).join(" ").length); if (d < diff) { diff = d; best = j; } }
+      lines = [words.slice(0, best).join(" "), words.slice(best).join(" ")];
+    }
+    const longest = Math.max(...lines.map(l => l.length));
+    const size = Math.min(56, (R * .62) / Math.max(4, longest) * 1.7, step * R * .42 / lines.length);
+    wx.font = `800 ${size}px Rubik, sans-serif`;
+    lines.forEach((l, j) => wx.fillText(l, R - 34, (j - (lines.length - 1) / 2) * size * 1.08));
+    wx.restore();
+  }
+  wx.restore();
+  for (let i = 0; i < 24; i++) {
+    const a = i / 24 * Math.PI * 2;
+    wx.beginPath(); wx.arc(R + Math.cos(a) * (R - 14), R + Math.sin(a) * (R - 14), 7, 0, Math.PI * 2);
+    wx.fillStyle = i % 2 ? "#ffd36b" : "#fff6dc"; wx.fill();
+  }
+}
+function renderConsol() {
+  const c = $("consol");
+  c.hidden = !consol;
+  if (consol) c.textContent = `Ruleta de consuelo: premios de ${fmt(CONSOL_MIN)} a ${fmt(consolCap())}. Si sale "Vuelve al juego", regresa a la Envenenada desde el nivel 1.`;
+  drawWheel();
+}
+function spin() {
+  if (spinning) return;
+  spinning = true; $("spin").disabled = true; sfx.whoosh();
+  const pr = wheelList(), n = pr.length, step = Math.PI * 2 / n, target = Math.floor(Math.random() * n);
+  const jitter = (Math.random() - .5) * step * .7, T = Math.PI * 2;
+  const finalMod = -Math.PI / 2 - (target * step + step / 2) + jitter;
+  const start = angle, base = start - (start % T);
+  let end = base + T * (7 + Math.floor(Math.random() * 3)) + ((finalMod % T) + T) % T;
+  if (end - start < T * 6) end += T;
+  const dur = 6500, t0 = performance.now();
+  let last = -1;
+  function frame(t) {
+    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 4);
+    angle = start + (end - start) * e; drawWheel();
+    const seg = Math.floor((((-Math.PI / 2 - angle) % T) + T * 2) % T / step);
+    if (seg !== last) { sfx.tick(); last = seg; }
+    if (p < 1) return requestAnimationFrame(frame);
+    spinning = false; $("spin").disabled = false;
+    wheelResult(pr[target]);
+  }
+  requestAnimationFrame(frame);
+}
+function wheelResult(prize) {
+  const k = kindOf(prize);
+  if (k === "retry") return show(prize, { kind: "neutral", label: "¡Otra oportunidad!" });
+  if (k === "back" && consol) {
+    const back = () => { consol = null; renderConsol(); mode("poison"); poisonStart(0); };
+    return show(prize, { kind: "win", label: "Regresa a la Envenenada desde el nivel 1", action: { label: "VOLVER AL JUEGO", fn: back }, onClose: back });
+  }
+  if (k === "back") return show(prize, { kind: "neutral", label: "Juega otra ronda" });
+  consol = null; renderConsol(); saveState();
+  if (k === "lose") show(prize, { kind: "lose", label: "¡Truco!" });
+  else show(prize, { kind: "win" });
+}
+
+/* ---------- Botón de calabaza ---------- */
+function pkButton(label, i) {
+  const b = document.createElement("button");
+  b.className = "pk"; b.setAttribute("aria-label", label + " " + (i + 1));
+  b.innerHTML = `<svg viewBox="0 0 220 200"><use class="body" href="#pumpkin"/><use class="face" href="#face"/></svg><span class="num">${i + 1}</span><span class="prize"></span>`;
+  return b;
+}
+function openPk(b, text, bad) {
+  b.classList.add("open");
+  if (bad) { b.classList.add("bad"); b.querySelector(".body").setAttribute("href", "#poison"); b.querySelector(".face").remove(); }
+  b.querySelector(".prize").textContent = text;
+}
+
+/* ---------- Calabaza Envenenada ---------- */
+const pkCount = l => cfg.basePk + l;   // calabazas en el nivel l (0 = primero)
+const badCount = l => l + 1;            // envenenadas en el nivel l
+function poisonOdds() {
+  let p = 1;
+  for (let l = 0; l < cfg.ladder.length; l++) p *= (pkCount(l) - badCount(l)) / pkCount(l);
+  return p;
+}
+function poisonStart(level) {
+  P.level = Number.isInteger(level) && level > 0 && level < cfg.ladder.length ? level : 0;
+  renderLadder(); renderRow(); saveState();
+}
+function renderLadder() {
+  $("ladder").innerHTML = cfg.ladder.map((v, i) =>
+    `<li class="${i < P.level ? "done" : ""} ${i === P.level ? "now" : ""} ${i === cfg.ladder.length - 1 ? "top" : ""}"><small>Nivel ${i + 1}<br><span class="odds">${badCount(i)} de ${pkCount(i)} ☠</span></small><span>${v}</span></li>`).join("");
+  const plant = $("plant");
+  plant.disabled = P.level === 0;
+  plant.textContent = P.level === 0 ? "PLANTARSE" : "PLANTARSE CON " + cfg.ladder[P.level - 1];
+  if (P.level >= cfg.ladder.length) { plant.disabled = true; $("pStatus").textContent = "¡Superó todos los niveles!"; return; }
+  const nb = badCount(P.level), n = pkCount(P.level);
+  $("pStatus").innerHTML = `Nivel ${P.level + 1} de ${cfg.ladder.length}: elige una. <em>${nb === 1 ? "Una" : nb} de ${n} ${nb === 1 ? "está envenenada" : "están envenenadas"}.</em>`;
+}
+function renderRow() {
+  const row = $("pRow"), n = pkCount(P.level);
+  P.bad = shuffle([...Array(n).keys()]).slice(0, badCount(P.level)); P.locked = false;
+  row.style.setProperty("--n", n);
+  row.innerHTML = "";
+  for (let i = 0; i < n; i++) { const b = pkButton("Calabaza", i); b.addEventListener("click", () => pick(i)); row.appendChild(b); }
+  row.classList.remove("enter"); void row.offsetWidth; row.classList.add("enter");
+}
+async function pick(i) {
+  if (P.locked) return;
+  P.locked = true; P.anim = true;
+  try { await pickInner(i); } finally { P.anim = false; }
+}
+async function pickInner(i) {
+  const btns = [...$("pRow").children], b = btns[i];
+  b.classList.add("suspense"); sfx.drumroll(1);
+  await wait(reduce ? 200 : 1050);
+  b.classList.remove("suspense");
+  if (P.bad.includes(i)) {
+    openPk(b, "☠ VENENO", true);
+    const [x, y] = centerOf(b);
+    sfx.boom(); sfx.bubbles(); sfx.drone(); flash("#5fae2e"); shake($("poisonLayout")); bubbles(x, y);
+    await wait(800);
+    btns.forEach((o, j) => { if (j !== i) { P.bad.includes(j) ? openPk(o, "☠", true) : openPk(o, "A salvo"); o.classList.add("dim"); } });
+    await wait(900);
+    const lostAt = P.level;
+    show("¡VENENO!", {
+      kind: "lose", art: "poison", label: "Calabaza envenenada",
+      action: { label: "GIRAR RULETA DE CONSUELO", fn: () => { consol = { level: lostAt }; poisonStart(0); mode("wheel"); renderConsol(); saveState(); } },
+      onClose: () => poisonStart(0)
+    });
+    return;
+  }
+  openPk(b, "¡A salvo!");
+  const [x, y] = centerOf(b);
+  burst(x, y, 50, ["#ffd36b", "#fff6dc", "#ff7a1a"], .014); sfx.chime(P.level);
+  P.level++;
+  renderLadder(); saveState();
+  if (P.level >= cfg.ladder.length) {
+    await wait(900);
+    flash("#ffd36b"); burst(.25, .4); burst(.75, .4); coinRain(90);
+    show(cfg.ladder[cfg.ladder.length - 1], { kind: "win", label: "¡Superó todos los niveles!", sound: sfx.big, onClose: () => poisonStart(0) });
+  } else { await wait(1200); sfx.whoosh(); renderRow(); }
+}
+function plant() {
+  if (P.level === 0 || P.locked) return;
+  sfx.chaChing(); coinRain();
+  show(cfg.ladder[P.level - 1], { kind: "win", label: "Se planta con premio directo", sound: () => { burst(); sfx.fanfare(); }, onClose: () => poisonStart(0) });
+}
+
+/* ---------- Busca Calabazas ---------- */
+const mPot = () => M.opened.reduce((s, i) => s + (M.cells[i].t === "p" ? money(M.cells[i].v) : 0), 0);
+const mMax = () => cfg.mines.reduce((s, v) => s + money(v), 0);
+function minesStart(saved) {
+  if (saved && Array.isArray(saved.cells) && saved.cells.length) {
+    M.cells = saved.cells; M.opened = saved.opened || []; M.status = saved.status || "play";
+  } else {
+    M.cells = shuffle(cfg.mines.map(v => ({ t: "p", v })).concat(Array.from({ length: cfg.skulls }, () => ({ t: "x" }))));
+    M.opened = []; M.status = "play";
+  }
+  M.busy = false;
+  renderMines(); saveState();
+}
+function renderMines() {
+  const g = $("mgrid"), n = M.cells.length;
+  g.style.setProperty("--mc", n <= 16 ? Math.ceil(n / 2) : Math.ceil(n / 3));
+  g.innerHTML = "";
+  M.cells.forEach((c, i) => {
+    const b = pkButton("Calabaza", i);
+    if (M.opened.includes(i) || M.status !== "play") {
+      if (c.t === "x") openPk(b, "☠", true); else openPk(b, c.v);
+      if (!M.opened.includes(i)) b.classList.add("dim");
+    }
+    b.addEventListener("click", () => minePick(i));
+    g.appendChild(b);
+  });
+  minesUI();
+}
+function minesUI() {
+  const pot = mPot(), lost = M.status === "lost";
+  $("mPot").textContent = fmt(lost ? 0 : pot);
+  $("mInfo").innerHTML = lost ? `Encontró una calavera y perdió <b>${fmt(pot)}</b>. Toca Nueva ronda.`
+    : M.status === "cashed" ? `Cobró <b>${fmt(pot)}</b>. Toca Nueva ronda.`
+    : `Hay <b>${cfg.skulls} calaveras</b> escondidas. Máximo por ronda: <b>${fmt(mMax())}</b>.`;
+  const c = $("mCash");
+  c.disabled = M.status !== "play" || pot === 0 || M.busy;
+  c.textContent = lost ? "PERDIÓ" : M.status === "cashed" ? "COBRADO" : pot ? "COBRAR " + fmt(pot) : "COBRAR";
+}
+async function minePick(i) {
+  if (M.status !== "play" || M.busy || M.opened.includes(i)) return;
+  M.busy = true; minesUI();
+  const b = $("mgrid").children[i], c = M.cells[i];
+  b.classList.add("suspense"); sfx.drumroll(.5);
+  await wait(reduce ? 150 : 600);
+  b.classList.remove("suspense");
+  const [x, y] = centerOf(b);
+  if (c.t === "x") {
+    M.opened.push(i); M.status = "lost";
+    openPk(b, "☠", true);
+    sfx.boom(); sfx.bubbles(); flash("#c8213a"); shake($("minesLayout")); bubbles(x, y, 30);
+    const lost = mPot() - 0;
+    await wait(700);
+    renderMines(); saveState();
+    M.busy = false;
+    show("Buena suerte para la próxima", { kind: "lose", art: "skull", label: lost ? `¡Calavera! Pierde ${fmt(lost)}` : "¡Calavera!" });
+    return;
+  }
+  M.opened.push(i); openPk(b, c.v);
+  burst(x, y, 40, ["#ffd36b", "#fff6dc"], .012); sfx.chime(Math.min(8, M.opened.length));
+  M.busy = false; minesUI(); saveState();
+  if (M.cells.every((cc, j) => cc.t === "x" || M.opened.includes(j))) {
+    M.status = "cashed"; await wait(600); renderMines(); saveState(); coinRain(100);
+    show(fmt(mPot()), { kind: "win", label: "¡Encontró todas las calabazas buenas!", sound: sfx.big });
+  }
+}
+function mineCash() {
+  const pot = mPot();
+  if (M.status !== "play" || !pot || M.busy) return;
+  M.status = "cashed"; renderMines(); saveState();
+  sfx.chaChing(); coinRain();
+  show(fmt(pot), { kind: "win", label: "Cobra su premio", sound: () => { burst(); sfx.fanfare(); } });
+}
+
+/* ---------- Último Vivo ---------- */
+const ORD = ["1.er", "2.º", "3.er", "4.º", "5.º", "6.º", "7.º", "8.º"];
+const tile = n => document.getElementById("t" + n);
+function ghostStart() {
+  G.total = cfg.players;
+  G.alive = Array.from({ length: cfg.players }, (_, i) => i + 1);
+  G.out = []; G.places = {}; G.busy = false;
+  G.revPlan = planRevives(G.total);
+  ghostRender(); ghostMsg("Cada jugador con su número. ¡Que empiece el susto!"); ghostUI(); saveState();
+}
+function ghostRestore(s) {
+  if (!s || !Array.isArray(s.alive) || !s.total || !s.alive.length) return ghostStart();
+  G.total = s.total; G.alive = s.alive; G.out = s.out || []; G.places = s.places || {}; G.busy = false;
+  G.revPlan = Array.isArray(s.revPlan) ? s.revPlan : [];
+  ghostRender(); ghostMsg(s.msg || ""); ghostUI();
+}
+// Por cada 10 jugadores resucita al menos uno: se decide al azar en qué momento de la partida
+function planRevives(total) {
+  const n = Math.floor(total / 10) * (cfg.revPer10 || 0);
+  const lo = cfg.podium.length + 3, hi = total - 1, range = [];
+  for (let v = lo; v <= hi; v++) range.push(v);
+  return shuffle(range).slice(0, n).sort((a, b) => b - a);
+}
+function badge(t, place) { t.classList.add("win"); t.insertAdjacentHTML("beforeend", `<span class="place">${ORD[place - 1] || place + "º"}</span>`); }
+function ghostRender() {
+  const g = $("graves"); g.innerHTML = "";
+  const cols = Math.max(10, Math.ceil(G.total / 3));
+  g.style.setProperty("--cols", cols);
+  g.style.setProperty("--tf", Math.round(Math.min(52, 1220 / cols * .45)) + "px");
+  for (let n = 1; n <= G.total; n++) {
+    const d = document.createElement("div");
+    d.className = "tomb"; d.id = "t" + n; d.textContent = n;
+    if (G.out.includes(n)) d.classList.add("out");
+    if (G.places[n]) badge(d, G.places[n]);
+    g.appendChild(d);
+  }
+  if (G.alive.length === 1) badge(tile(G.alive[0]), 1);
+  $("gPodium").innerHTML = cfg.podium.map((p, i) => `<span>${ORD[i] || (i + 1) + "º"} <b>${p}</b></span>`).join("");
+}
+function ghostMsg(t) { $("gMsg").textContent = t; }
+function ghostUI() {
+  $("gAlive").textContent = G.alive.length; $("gTotal").textContent = G.total;
+  const done = G.alive.length <= 1;
+  $("scare1").disabled = G.busy || done;
+  $("scare3").disabled = G.busy || done || G.alive.length <= cfg.podium.length + 1;
+}
+async function scan(pool, target, steps = 22) {
+  let prev;
+  for (let s = 0; s < steps; s++) {
+    const n = s === steps - 1 ? target : pool[Math.floor(Math.random() * pool.length)];
+    if (prev) tile(prev).classList.remove("hot");
+    tile(n).classList.add("hot"); prev = n; sfx.tick();
+    await wait(reduce ? 30 : 45 + Math.pow(s / steps, 3) * 420);
+  }
+  await wait(350);
+  tile(target).classList.remove("hot");
+}
+function zombieRise(n) {
+  const t = tile(n), z = document.createElement("div");
+  z.className = "zrise";
+  z.style.cssText = `left:${t.offsetLeft}px;top:${t.offsetTop}px;width:${t.offsetWidth}px;height:${t.offsetHeight}px`;
+  z.innerHTML = ART.zombie;
+  $("graves").appendChild(z);
+  const [x, y] = centerOf(t);
+  dirt(x, y + .03); sfx.groan();
+  setTimeout(() => z.remove(), 2600);
+}
+async function eliminate(fast) {
+  const n = pickFrom(G.alive);
+  await scan(G.alive, n, fast ? 12 : 22);
+  G.alive = G.alive.filter(x => x !== n); G.out.push(n);
+  const t = tile(n); t.classList.add("out");
+  const place = G.alive.length + 1;
+  if (place <= cfg.podium.length) {
+    G.places[n] = place; badge(t, place);
+    ghostMsg(`El número ${n} quedó en ${ORD[place - 1]} lugar`); ghostUI(); saveState();
+    await overlay(cfg.podium[place - 1], { kind: "win", label: `Número ${n} · ${ORD[place - 1]} lugar` });
+  } else { sfx.cackle(); ghostMsg(`El fantasma se llevó al número ${n}`); ghostUI(); saveState(); }
+  if (G.alive.length === 1) {
+    const w = G.alive[0];
+    badge(tile(w), 1); ghostMsg(`¡El número ${w} es el Último Vivo!`); saveState();
+    coinRain(90);
+    await overlay(cfg.podium[0], { kind: "win", label: `¡Número ${w}, el Último Vivo!`, sound: sfx.big });
+  }
+}
+async function revive() {
+  {
+    const n = pickFrom(G.out);
+    ghostMsg("¡Algo se mueve en el cementerio...!");
+    await scan(G.out, n, 18);
+    zombieRise(n);
+    await wait(reduce ? 300 : 2000);
+    G.out = G.out.filter(x => x !== n); G.alive.push(n);
+    const t = tile(n); t.classList.remove("out"); t.classList.add("back");
+    ghostUI(); saveState();
+    await overlay(`Número ${n}`, { kind: "neutral", art: "zombie", label: "¡Resucitó y vuelve al juego!", sound: sfx.groan });
+    ghostMsg(`El número ${n} salió de la tumba`);
+  }
+}
+async function bonusSurprise() {
+  {
+    const n = pickFrom(G.alive);
+    ghostMsg("Un fantasma generoso anda suelto...");
+    await scan(G.alive, n, 18);
+    await overlay(cfg.bonus, { kind: "win", label: `Bono sorpresa para el número ${n}` });
+    ghostMsg(`El número ${n} ganó el bono y sigue en juego`);
+  }
+}
+async function scare(times) {
+  if (G.busy || G.alive.length <= 1) return;
+  G.busy = true; ghostUI();
+  if (G.revPlan.length && G.out.length && G.alive.length <= G.revPlan[0]) { G.revPlan.shift(); await revive(); }
+  else if (cfg.bonusOn && times === 1 && G.alive.length > cfg.podium.length + 2 && Math.random() < .15) await bonusSurprise();
+  else {
+    const n = times === 1 ? 1 : Math.max(1, Math.min(times, G.alive.length - cfg.podium.length));
+    ghostMsg(n > 1 ? "¡Susto triple!" : "El fantasma está escogiendo...");
+    for (let i = 0; i < n; i++) await eliminate(n > 1);
+  }
+  G.busy = false; ghostUI(); saveState();
+}
+
+/* ---------- Navegación y menú ---------- */
+const NAMES = { ghost: "Último Vivo", poison: "Calabaza Envenenada", mines: "Busca Calabazas", wheel: "Ruleta" };
+function mode(m) {
+  if (!NAMES[m]) m = "ghost";
+  current = m; saveState();
+  $("sGhost").hidden = m !== "ghost"; $("sPoison").hidden = m !== "poison";
+  $("sMines").hidden = m !== "mines"; $("sWheel").hidden = m !== "wheel";
+  $("nowGame").textContent = NAMES[m];
+  document.querySelectorAll(".game").forEach(g => g.setAttribute("aria-current", String(g.dataset.mode === m)));
+}
+function openMenu(open) {
+  $("drawer").hidden = !open; $("backdrop").hidden = !open;
+  $("bMenu").setAttribute("aria-expanded", String(open));
+}
+$("bMenu").onclick = () => openMenu(true);
+$("backdrop").onclick = () => openMenu(false);
+$("bCloseMenu").onclick = () => openMenu(false);
+document.querySelectorAll(".game").forEach(g => g.onclick = () => {
+  if (G.busy || spinning || M.busy || P.anim) { toast("Espera a que termine la jugada."); return; }
+  mode(g.dataset.mode); openMenu(false);
+});
+$("scare1").onclick = () => scare(1);
+$("scare3").onclick = () => scare(3);
+$("gRestart").onclick = () => { if (!G.busy) ghostStart(); };
+$("plant").onclick = plant;
+$("pRestart").onclick = () => { if (!P.anim) poisonStart(0); };
+$("mCash").onclick = mineCash;
+$("mRestart").onclick = () => { if (!M.busy) minesStart(); };
+$("spin").onclick = spin;
+$("bSound").onclick = () => { sound = !sound; $("bSound").setAttribute("aria-pressed", String(sound)); $("bSound").textContent = sound ? "Sonido" : "Sin sonido"; };
+
+function toast(msg) {
+  let t = $("toast");
+  if (!t) {
+    t = document.createElement("div"); t.id = "toast";
+    t.style.cssText = "position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;background:var(--night-2);color:var(--bone);border:2px solid var(--pumpkin);border-radius:14px;padding:14px 18px;max-width:min(92vw,520px);font-size:1rem;line-height:1.4;text-align:center";
+    t.onclick = () => { t.hidden = true; };
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, msg.length > 80 ? 9000 : 4000);
+}
+$("bFull").onclick = async () => {
+  const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) { await (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+    if (!req) throw 0;
+    await req.call(el); openMenu(false);
+  } catch (e) { toast("Este celular no permite pantalla completa aquí. Gira el celular en horizontal; en el TV se verá casi completo."); }
+};
+
+/* ---------- Panel de premios ---------- */
+const lines = id => $(id).value.split("\n").map(s => s.trim()).filter(Boolean);
+function fillPanel(c) {
+  $("panelSala").textContent = salaName();
+  $("prizeText").value = c.prizes.join("\n"); $("ladderText").value = c.ladder.join("\n");
+  $("basePk").value = String(c.basePk); $("minesText").value = c.mines.join("\n"); $("skullsIn").value = c.skulls;
+  $("podiumText").value = c.podium.join("\n"); $("players").value = c.players; $("bonusIn").value = c.bonus;
+  $("bonusOnIn").checked = !!c.bonusOn; $("revIn").value = c.revPer10; $("consolText").value = c.consol.join("\n");
+  panelNotes();
+}
+function panelNotes() {
+  const lad = lines("ladderText"), base = +$("basePk").value || 3;
+  let p = 1; lad.forEach((_, l) => { p *= (base - 1) / (base + l); });
+  $("poisonOdds").textContent = lad.length ? `Nivel ${lad.length}: ${lad.length} de ${base + lad.length - 1} envenenadas. Llega al premio mayor más o menos 1 de cada ${Math.max(1, Math.round(1 / p))} personas.` : "";
+  const mx = lines("minesText").reduce((s, v) => s + money(v), 0);
+  $("minesMax").textContent = `Máximo por ronda: ${fmt(mx)} · ${lines("minesText").length + (+$("skullsIn").value || 0)} calabazas en total.`;
+  const top = Math.max(...lines("ladderText").map(money), 0);
+  const out = lines("consolText").filter(t => kindOf(t) === "win" && (money(t) < CONSOL_MIN || money(t) > top));
+  $("consolNote").textContent = out.length ? `Nunca aparecerán (fuera de ${fmt(CONSOL_MIN)} a ${fmt(top)}): ${out.join(", ")}.` : `Si pierde en el nivel 1 solo salen premios hasta ${fmt(money(lines("ladderText")[0]))}; en niveles más altos aparecen los mayores.`;
+  const pl = +$("players").value || 20, rv = Math.floor(pl / 10) * (+$("revIn").value || 0);
+  $("ghostNote").textContent = `Con ${pl} jugadores resucitan ${rv} por partida. ` + ($("bonusOnIn").checked ? "Bono sorpresa activado." : "Bono sorpresa apagado.");
+}
+["ladderText", "basePk", "minesText", "skullsIn", "consolText", "players", "revIn", "bonusOnIn"].forEach(id => $(id).addEventListener("input", panelNotes));
+$("bPrizes").onclick = () => { fillPanel(cfg); openMenu(false); $("panel").hidden = false; };
+$("close").onclick = () => { $("panel").hidden = true; };
+$("restore").onclick = () => fillPanel(JSON.parse(JSON.stringify(DEF)));
+$("save").onclick = () => {
+  const pr = lines("prizeText").slice(0, 24), lad = lines("ladderText").slice(0, 8), mi = lines("minesText").slice(0, 20), pod = lines("podiumText").slice(0, 8);
+  if (pr.length < 2) { toast("La ruleta necesita al menos 2 premios."); $("prizeText").focus(); return; }
+  if (!lad.length) { toast("La Envenenada necesita al menos 1 nivel."); $("ladderText").focus(); return; }
+  if (mi.length < 2) { toast("Busca Calabazas necesita al menos 2 premios."); $("minesText").focus(); return; }
+  if (!pod.length) { toast("El podio necesita al menos 1 premio."); $("podiumText").focus(); return; }
+  const oldMines = JSON.stringify([cfg.mines, cfg.skulls]), oldPlayers = cfg.players;
+  cfg.prizes = pr; cfg.ladder = lad; cfg.basePk = Math.min(5, Math.max(2, +$("basePk").value || 3));
+  cfg.mines = mi; cfg.skulls = Math.min(12, Math.max(1, Math.round(+$("skullsIn").value) || 5));
+  cfg.podium = pod; cfg.players = Math.min(60, Math.max(pod.length + 1, Math.round(+$("players").value) || 20));
+  cfg.bonus = $("bonusIn").value.trim() || "$10.000"; cfg.bonusOn = $("bonusOnIn").checked;
+  cfg.revPer10 = Math.min(3, Math.max(0, Math.round(+$("revIn").value) || 0));
+  const co = lines("consolText").slice(0, 24);
+  if (co.length >= 2) cfg.consol = co;
+  persist(); drawWheel();
+  if (!G.busy) G.revPlan = G.revPlan.length || G.out.length ? G.revPlan : planRevives(G.total);
+  if (!P.locked) poisonStart(Math.min(P.level, cfg.ladder.length - 1)); else renderLadder();
+  if (!M.busy && oldMines !== JSON.stringify([cfg.mines, cfg.skulls])) minesStart(); else minesUI();
+  if (!G.busy) { if (cfg.players !== oldPlayers) ghostStart(); else { ghostRender(); ghostUI(); } }
+  $("panel").hidden = true; toast("Premios guardados en " + salaName());
+};
+
+/* ---------- Salas ---------- */
+let delArm = false;
+function renderSalas() {
+  const list = $("salaList"); list.innerHTML = "";
+  salas.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = s.name; b.setAttribute("aria-pressed", String(s.id === salaId));
+    b.onclick = () => switchSala(s.id); list.appendChild(b);
+  });
+  $("salaTag").textContent = salaName();
+  $("salaDel").textContent = "Borrar esta sala"; delArm = false;
+}
+function loadSala() {
+  loading = true;
+  loadConfig();
+  const st = LS.get(`sala:${salaId}:st3`) || {};
+  consol = st.consol || null;
+  drawWheel(); renderConsol();
+  poisonStart(st.poison ? st.poison.level : 0);
+  minesStart(st.mines);
+  ghostRestore(st.ghost);
+  mode(st.mode || "ghost");
+  loading = false; saveState(); renderSalas();
+}
+function switchSala(id, skipSave) {
+  if (G.busy || spinning || M.busy) { toast("Espera a que termine la jugada para cambiar de sala."); return; }
+  if (!skipSave) saveState();
+  salaId = id; LS.set("salaActual", salaId); LS.set("salas", salas);
+  loadSala(); $("salasPanel").hidden = true;
+  toast("Estás en " + salaName() + ". Su partida sigue donde quedó.");
+}
+$("bSala").onclick = () => { renderSalas(); $("salaName").value = ""; openMenu(false); $("salasPanel").hidden = false; };
+$("salaClose").onclick = () => { $("salasPanel").hidden = true; };
+$("salaAdd").onclick = () => {
+  const name = $("salaName").value.trim() || "Casino " + (salas.length + 1), id = "s" + Date.now();
+  salas.push({ id, name }); LS.set("salas", salas); switchSala(id);
+};
+$("salaRename").onclick = () => {
+  const name = $("salaName").value.trim();
+  if (!name) { toast("Escribe el nombre nuevo en la casilla y toca Renombrar."); $("salaName").focus(); return; }
+  salas.find(s => s.id === salaId).name = name; LS.set("salas", salas); renderSalas();
+};
+$("salaDel").onclick = () => {
+  if (salas.length === 1) { toast("Debe quedar al menos una sala."); return; }
+  if (!delArm) { delArm = true; $("salaDel").textContent = "Toca otra vez para borrar " + salaName(); return; }
+  if (G.busy || spinning || M.busy) { toast("Espera a que termine la jugada."); return; }
+  LS.del(`sala:${salaId}:cfg3`); LS.del(`sala:${salaId}:st3`);
+  salas = salas.filter(s => s.id !== salaId);
+  switchSala(salas[0].id, true);
+};
+
+/* ---------- Modo TV ---------- */
+const app = document.querySelector(".app");
+const probe = document.createElement("div");
+probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)";
+document.body.appendChild(probe);
+function fit() {
+  const w = innerWidth, h = innerHeight, tv = w > h && w >= 560;
+  document.body.classList.toggle("tv", tv);
+  if (!tv) { app.style.transform = app.style.width = app.style.height = app.style.paddingLeft = app.style.paddingRight = ""; return; }
+  const ar = w / h;
+  let W = 1280, H = 720;
+  if (ar > 16 / 9) W = Math.round(720 * ar); else H = Math.round(1280 / ar);
+  const s = w / W, cs = getComputedStyle(probe);
+  const inL = parseFloat(cs.paddingLeft) || 0, inR = parseFloat(cs.paddingRight) || 0;
+  app.style.width = W + "px"; app.style.height = H + "px";
+  app.style.paddingLeft = Math.max(30, inL / s + 12) + "px";
+  app.style.paddingRight = Math.max(30, inR / s + 12) + "px";
+  app.style.transform = `scale(${s})`;
+}
+addEventListener("resize", fit);
+addEventListener("orientationchange", () => setTimeout(fit, 200));
+fit();
+
+// Pantalla encendida mientras se proyecta
+async function wake() { try { if ("wakeLock" in navigator) await navigator.wakeLock.request("screen"); } catch (e) {} }
+document.addEventListener("click", wake, { once: true });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) wake(); });
+
+if (/NocheCalabazasApp/.test(navigator.userAgent)) $("bFull").hidden = true;
+document.fonts && document.fonts.ready.then(drawWheel);
+loadSala();
+</script>
+
+</body>
+</html>

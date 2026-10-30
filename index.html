@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Noche de Calabazas</title>
+<meta name="description" content="Juegos de Halloween para animar casinos y eventos: Último Vivo, Calabaza Envenenada, Busca Calabazas y Ruleta. Se juegan desde el celular y se proyectan en el TV.">
+<meta name="theme-color" content="#120d1c">
+<meta property="og:title" content="Noche de Calabazas">
+<meta property="og:description" content="Cuatro juegos de Halloween con premios para casinos y eventos. Juega en el navegador o instala la app Android.">
+<meta property="og:image" content="https://thinnesentree3.github.io/noche-de-calabazas/og.jpg">
+<meta property="og:url" content="https://thinnesentree3.github.io/noche-de-calabazas/">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" href="icono.png">
+<link rel="apple-touch-icon" href="icono.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Rubik:wght@400;600;800&display=swap">
+<style>
+/* Una sola atmósfera nocturna (decisión deliberada, sin tema claro): portada con el juego en un TV, cuatro juegos, cómo proyectar e instalar */
+:root {
+  --night: #120d1c;
+  --night-2: #1d1530;
+  --line: #3a2c55;
+  --bone: #f3ead8;
+  --muted: #b3a6c8;
+  --pumpkin: #ff7a1a;
+  --pumpkin-dark: #c4470a;
+  --candle: #ffd36b;
+  --toxic: #9be36b;
+  --display: "Creepster", "Impact", fantasy;
+  --body: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--night); color: var(--bone);
+  font: 400 17px/1.6 var(--body); overflow-x: hidden;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+h1, h2 { font-family: var(--display); font-weight: 400; letter-spacing: .02em; line-height: 1; margin: 0; text-wrap: balance; }
+h2 { font-size: clamp(2.4rem, 6vw, 3.6rem); color: var(--pumpkin); text-shadow: 0 3px 0 #5a1d05; }
+h3 { margin: 0; font-size: 1.35rem; font-weight: 800; }
+p { margin: 0; }
+.eyebrow { font-size: .8rem; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+:focus-visible { outline: 3px solid var(--candle); outline-offset: 3px; }
+
+/* Botones */
+.btns { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
+  font-weight: 800; font-size: 1.1rem; border-radius: 14px; padding: 14px 22px;
+  transition: transform .15s;
+}
+.btn svg { width: 22px; height: 22px; flex: none; }
+.btn:hover { transform: translateY(-2px); }
+.btn-main { background: var(--pumpkin); color: #1a0b00; box-shadow: 0 6px 0 var(--pumpkin-dark); }
+.btn-main:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--pumpkin-dark); }
+.btn-ghost { background: var(--night-2); color: var(--bone); border: 2px solid var(--line); }
+
+/* Portada */
+.hero { position: relative; padding-block: clamp(28px, 6vw, 72px) clamp(40px, 7vw, 88px); background: radial-gradient(ellipse at 70% 10%, #2e1d4b 0%, transparent 60%), radial-gradient(ellipse at 10% 90%, rgba(255,122,26,.12) 0%, transparent 55%); }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: clamp(28px, 5vw, 64px); align-items: center; }
+.hero h1 { font-size: clamp(3.4rem, 10vw, 6.6rem); color: var(--pumpkin); text-shadow: 0 0 28px rgba(255,122,26,.45), 0 5px 0 #5a1d05; }
+.hero-text { display: grid; gap: 22px; min-width: 0; }
+.lead { font-size: clamp(1.1rem, 2.2vw, 1.3rem); color: var(--bone); max-width: 34ch; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.facts li { font-size: .9rem; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+
+/* TV con el juego */
+.tv { position: relative; min-width: 0; }
+.tv-frame { background: #08060d; border: 10px solid #2a2238; border-radius: 18px; box-shadow: 0 30px 70px rgba(0,0,0,.6), 0 0 80px rgba(255,122,26,.18); overflow: hidden; aspect-ratio: 16 / 9; }
+.tv-frame img { width: 100%; height: 100%; object-fit: cover; transition: opacity .5s; }
+.tv-stand { width: 26%; height: 18px; margin: 0 auto; background: #2a2238; border-radius: 0 0 10px 10px; }
+.tv-tabs { display: flex; justify-content: center; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+.tv-tabs button { font: 600 .85rem var(--body); color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.tv-tabs button[aria-pressed="true"] { background: var(--pumpkin); border-color: var(--pumpkin); color: #1a0b00; }
+
+/* Secciones */
+section { padding-block: clamp(48px, 8vw, 96px); }
+.sec-head { display: grid; gap: 12px; margin-bottom: clamp(28px, 4vw, 44px); max-width: 640px; }
+.sec-head p { color: var(--muted); font-size: 1.08rem; }
+.band { background: var(--night-2); border-block: 1px solid var(--line); }
+
+/* Juegos */
+.games { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(18px, 3vw, 32px); }
+.game { display: grid; gap: 14px; min-width: 0; }
+.game figure { margin: 0; border-radius: 14px; overflow: hidden; border: 2px solid var(--line); aspect-ratio: 16 / 9; background: #08060d; }
+.game figure img { width: 100%; height: 100%; object-fit: cover; }
+.game-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.game-top span { font-size: .85rem; font-weight: 600; color: var(--toxic); white-space: nowrap; }
+.game p { color: var(--muted); }
+.game p b { color: var(--bone); font-weight: 600; }
+
+/* Pasos */
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; list-style: none; margin: 0; padding: 0; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; gap: 8px; align-content: start; padding: 22px; border-radius: 16px; background: var(--night); border: 1px solid var(--line); min-width: 0; }
+.steps li::before { content: counter(s); font-family: var(--display); font-size: 2.6rem; line-height: 1; color: var(--candle); }
+.steps p { color: var(--muted); }
+.steps b { color: var(--bone); font-weight: 600; }
+
+/* Instalar */
+.install { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 48px); align-items: start; }
+.install ol { margin: 0; padding-left: 1.3em; display: grid; gap: 10px; color: var(--muted); }
+.install ol b { color: var(--bone); font-weight: 600; }
+.card { background: var(--night-2); border: 2px solid var(--pumpkin); border-radius: 18px; padding: 24px; display: grid; gap: 16px; }
+.card .icon { display: flex; gap: 14px; align-items: center; }
+.card .icon img { width: 64px; height: 64px; border-radius: 14px; }
+.card small { color: var(--muted); font-size: .9rem; }
+
+footer { padding-block: 32px calc(32px + env(safe-area-inset-bottom, 0px)); color: var(--muted); font-size: .92rem; border-top: 1px solid var(--line); }
+footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero-grid, .install { grid-template-columns: 1fr; }
+  .tv { order: -1; }
+  .games { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn, .tv-frame img { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-text">
+      <p class="eyebrow">Juegos de Halloween para casinos y eventos</p>
+      <h1>Noche de Calabazas</h1>
+      <p class="lead">Cuatro juegos con premios que se manejan desde el celular y se ven en grande en el TV del salón.</p>
+      <div class="btns">
+        <a class="btn btn-main" href="jugar.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>Jugar ahora
+        </a>
+        <a class="btn btn-ghost" href="#instalar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 20h14" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>App Android
+        </a>
+      </div>
+      <ul class="facts">
+        <li>Hasta 60 jugadores</li>
+        <li>Premios editables</li>
+        <li>Guarda la partida</li>
+        <li>Funciona sin internet</li>
+      </ul>
+    </div>
+
+    <div class="tv">
+      <div class="tv-frame"><img id="tvImg" src="ultimo-vivo.jpg" alt="Juego Último Vivo proyectado en el TV: 20 lápidas numeradas, varias eliminadas" width="1280" height="720"></div>
+      <div class="tv-stand"></div>
+      <div class="tv-tabs" role="group" aria-label="Ver juego en el TV">
+        <button aria-pressed="true" data-img="ultimo-vivo" data-alt="Último Vivo: 20 lápidas numeradas, varias eliminadas">Último Vivo</button>
+        <button aria-pressed="false" data-img="envenenada" data-alt="Calabaza Envenenada: escalera de niveles y calabazas para escoger">Envenenada</button>
+        <button aria-pressed="false" data-img="busca-calabazas" data-alt="Busca Calabazas: 16 calabazas y el acumulado">Busca Calabazas</button>
+        <button aria-pressed="false" data-img="ruleta" data-alt="Ruleta de premios de Halloween">Ruleta</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="juegos">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Los juegos</p>
+        <h2>Para todo el salón o uno por uno</h2>
+        <p>Cambias de juego desde el menú en cualquier momento. Cada uno tiene sus propios premios, sonidos y efectos.</p>
+      </div>
+      <div class="games">
+        <article class="game">
+          <figure><img src="ultimo-vivo.jpg" alt="Último Vivo en pantalla" loading="lazy" width="1280" height="720"></figure>
+          <div class="game-top"><h3>Último Vivo</h3><span>Todo el salón</span></div>
+          <p>Cada cliente recibe un número. Un fantasma recorre las lápidas y se lleva uno por ronda. Por cada 10 jugadores alguien <b>resucita</b> y sale un zombie de su tumba. Los últimos 3 ganan el podio.</p>
+        </article>
+        <article class="game">
+          <figure><img src="envenenada.jpg" alt="Calabaza Envenenada en pantalla" loading="lazy" width="1280" height="720"></figure>
+          <div class="game-top"><h3>Calabaza Envenenada</h3><span>Un jugador</span></div>
+          <p>Sube de nivel escogiendo calabazas. Cada nivel paga más, pero trae <b>una envenenada más</b>. El cliente decide cuándo plantarse. Si pierde, gira la ruleta de consuelo.</p>
+        </article>
+        <article class="game">
+          <figure><img src="busca-calabazas.jpg" alt="Busca Calabazas en pantalla" loading="lazy" width="1280" height="720"></figure>
+          <div class="game-top"><h3>Busca Calabazas</h3><span>Un jugador</span></div>
+          <p>Como un buscaminas: cada calabaza buena suma al acumulado y hay calaveras escondidas. Si cobra a tiempo se lo lleva; si sale una calavera, <b>pierde todo</b>.</p>
+        </article>
+        <article class="game">
+          <figure><img src="ruleta.jpg" alt="Ruleta en pantalla" loading="lazy" width="1280" height="720"></figure>
+          <div class="game-top"><h3>Ruleta</h3><span>Un jugador</span></div>
+          <p>Premios menores con casillas especiales: <b>Gira otra vez</b>, <b>Buena suerte para la próxima</b> y <b>Vuelve al juego</b>, que regresa a la Envenenada.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="proyectar">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">En el casino</p>
+        <h2>Del celular al TV</h2>
+      </div>
+      <ol class="steps">
+        <li><h3>Abre el juego</h3><p>Desde la app Android o con <b>Jugar ahora</b> en el navegador. Crea una <b>sala</b> por cada casino: cada una guarda su partida.</p></li>
+        <li><h3>Duplica la pantalla</h3><p>Android: <b>Smart View</b> o <b>Transmitir</b>. iPhone: <b>Duplicar pantalla</b> con AirPlay. Sin Smart TV, un cable HDMI sirve.</p></li>
+        <li><h3>Gira el celular</h3><p>En horizontal el juego se ajusta solo a la pantalla del TV. En vertical editas premios cómodo.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="instalar">
+    <div class="wrap install">
+      <div class="sec-head" style="margin:0">
+        <p class="eyebrow">App Android</p>
+        <h2>Instálala en tu celular</h2>
+        <p>La app abre en pantalla completa, no deja apagar la pantalla y guarda las partidas aunque la cierres.</p>
+        <ol>
+          <li>Toca <b>Descargar APK</b> desde el celular.</li>
+          <li>Abre el archivo descargado.</li>
+          <li>Si Android lo bloquea, toca <b>Configuración</b> y activa <b>Permitir de esta fuente</b>.</li>
+          <li>Si aparece Play Protect, toca <b>Instalar de todas formas</b>. Sale porque la app no viene de la Play Store.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="icon"><img src="icono.png" alt="" width="64" height="64"><div><h3>Noche de Calabazas</h3><small>Android 7 o superior · gratis</small></div></div>
+        <div class="btns">
+          <a class="btn btn-main" href="https://github.com/ThinnesEntree3/noche-de-calabazas/releases/latest/download/NocheDeCalabazas.apk">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 20h14" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Descargar APK
+          </a>
+          <a class="btn btn-ghost" href="jugar.html">Probar en el navegador</a>
+        </div>
+        <small>¿Tienes iPhone? Usa <b>Jugar ahora</b> en Safari y agrégalo a la pantalla de inicio.</small>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Noche de Calabazas · Hecho por Juan Diego Valenzuela</span>
+    <a href="https://github.com/ThinnesEntree3/noche-de-calabazas">Código en GitHub</a>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll(".tv-tabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tv-tabs button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  const img = document.getElementById("tvImg");
+  img.src = "" + b.dataset.img + ".jpg"; img.alt = b.dataset.alt;
+}));
+</script>
+</body>
+</html>
