@@ -412,7 +412,7 @@ body.tv { overflow: hidden; }
   </section>
   <section>
     <h3>Ruleta de consuelo</h3>
-    <p>Sale cuando alguien pierde en la Envenenada. Los premios en dinero van de <b>$10.000</b> hasta el premio del nivel donde perdió. Los que se salgan de ese rango no aparecen en ese giro. <b>Vuelve al juego</b> lo regresa a la Envenenada desde el nivel 1.</p>
+    <p>Sale cuando alguien pierde en la Envenenada. <span id="consolRule"></span> <b>Vuelve al juego</b> lo regresa a la Envenenada desde el nivel 1.</p>
     <textarea id="consolText" aria-label="Premios de la ruleta de consuelo"></textarea>
     <p class="note" id="consolNote"></p>
   </section>
@@ -427,7 +427,7 @@ body.tv { overflow: hidden; }
   </section>
   <section>
     <h3>Busca Calabazas</h3>
-    <p>Lo que trae cada calabaza buena, uno por línea. La suma es lo máximo que se puede ganar en una ronda.</p>
+    <p id="minesHelp">Lo que trae cada calabaza buena, uno por línea. La suma es lo máximo que se puede ganar en una ronda.</p>
     <textarea id="minesText" aria-label="Premios de Busca Calabazas"></textarea>
     <label for="skullsIn">Calaveras escondidas <input id="skullsIn" type="number" min="1" max="12" class="chip" style="width:90px"></label>
     <p class="note" id="minesMax"></p>
@@ -457,8 +457,18 @@ body.tv { overflow: hidden; }
   <h2>Salas</h2>
   <p>Cada sala guarda su propia partida y sus propios premios. Al cerrar la app, todo sigue donde quedó. Toca una sala para pasarte a ella.</p>
   <div class="row" id="salaList"></div>
+  <section>
+    <h3>Tipo de esta sala</h3>
+    <p><b>Casino:</b> premios en dinero; la ruleta de consuelo da de $10.000 hasta el premio del nivel. <b>Casa:</b> premios como dulces o retos; la ruleta de consuelo muestra todo y Busca Calabazas cuenta puntos.</p>
+    <div class="row" role="group" aria-label="Tipo de sala">
+      <button class="chip" id="tipoCasino" aria-pressed="true">Casino</button>
+      <button class="chip" id="tipoCasa" aria-pressed="false">Casa</button>
+    </div>
+    <p class="note" id="tipoNote" hidden></p>
+  </section>
   <div class="row">
     <input id="salaName" class="chip" type="text" placeholder="Nombre, ej. Casino Norte" style="flex:1;min-width:200px" aria-label="Nombre de la sala">
+    <select id="salaNewTipo" class="chip" aria-label="Tipo de la sala nueva"><option value="casino">Casino</option><option value="casa">Casa</option></select>
     <button class="chip" id="salaAdd">Crear sala nueva</button>
     <button class="chip" id="salaRename">Renombrar esta sala</button>
   </div>
@@ -520,7 +530,7 @@ const $ = id => document.getElementById(id);
 const PERSIST = true;
 
 /* ---------- Premios de ejemplo ---------- */
-const DEF = {
+const DEF_CASINO = {
   prizes: ["$5.000", "Buena suerte para la próxima", "$10.000", "Gira otra vez", "$20.000", "Buena suerte para la próxima",
            "$5.000", "$15.000", "Buena suerte para la próxima", "$10.000", "$40.000", "Gira otra vez"],
   consol: ["$10.000", "Buena suerte para la próxima", "$15.000", "Vuelve al juego", "$10.000", "Buena suerte para la próxima",
@@ -531,6 +541,19 @@ const DEF = {
   skulls: 5,
   podium: ["$80.000", "$50.000", "$30.000"],
   players: 20, revPer10: 1, bonus: "$10.000", bonusOn: false
+};
+// Sala tipo casa: premios que no son dinero; Busca Calabazas cuenta puntos
+const DEF_CASA = {
+  prizes: ["Bolsa de dulces", "Buena suerte para la próxima", "Chocolate", "Gira otra vez", "Chupeta", "Buena suerte para la próxima",
+           "Gomitas", "Escoges la próxima canción", "Buena suerte para la próxima", "Paquete de papas", "Te salvas de lavar los platos", "Gira otra vez"],
+  consol: ["Un dulce", "Buena suerte para la próxima", "Chupeta", "Vuelve al juego", "Gomitas", "Buena suerte para la próxima",
+           "Chocolate", "Gira otra vez"],
+  ladder: ["Un dulce", "Bolsa de gomitas", "Chocolate grande", "Canasta de Halloween"],
+  basePk: 3,
+  mines: ["2 puntos", "2 puntos", "3 puntos", "3 puntos", "4 puntos", "4 puntos", "5 puntos", "5 puntos", "6 puntos", "7 puntos", "9 puntos"],
+  skulls: 5,
+  podium: ["Canasta de dulces", "Chocolate grande", "Bolsa de gomitas"],
+  players: 10, revPer10: 1, bonus: "Chupeta", bonusOn: false
 };
 const kindOf = t => /buena suerte|sigue intentando|pierde/i.test(t) ? "lose"
   : /otra vez/i.test(t) ? "retry" : /vuelve al juego/i.test(t) ? "back" : "win";
@@ -552,6 +575,11 @@ if (!Array.isArray(salas) || !salas.length) salas = [{ id: "s1", name: "Casino 1
 let salaId = LS.get("salaActual");
 if (!salas.some(s => s.id === salaId)) salaId = salas[0].id;
 const salaName = () => (salas.find(s => s.id === salaId) || {}).name || "";
+const tipo = () => (salas.find(s => s.id === salaId) || {}).tipo === "casa" ? "casa" : "casino";
+const isCasa = () => tipo() === "casa";
+const defFor = t => JSON.parse(JSON.stringify(t === "casa" ? DEF_CASA : DEF_CASINO));
+// En casa, Busca Calabazas cuenta puntos; en casino, pesos
+const amt = n => isCasa() ? n + (n === 1 ? " punto" : " puntos") : fmt(n);
 
 let cfg = {};
 let sound = true, current = "ghost", loading = false, consol = null;
@@ -561,7 +589,7 @@ const M = { cells: [], opened: [], status: "play", busy: false };
 
 function loadConfig() {
   const saved = LS.get(`sala:${salaId}:cfg3`) || {};
-  cfg = Object.assign(JSON.parse(JSON.stringify(DEF)), saved);
+  cfg = Object.assign(defFor(tipo()), saved);
 }
 function persist() {
   LS.set(`sala:${salaId}:cfg3`, cfg); LS.set("salas", salas); LS.set("salaActual", salaId);
@@ -713,6 +741,7 @@ const CONSOL_MIN = 10000;  // la ruleta de consuelo da mínimo $10.000 y nunca m
 function consolCap() { return consol ? money(cfg.ladder[Math.min(consol.level, cfg.ladder.length - 1)]) || CONSOL_MIN : Infinity; }
 function wheelList() {
   if (!consol) return cfg.prizes;
+  if (isCasa()) return cfg.consol.length >= 2 ? cfg.consol : ["Buena suerte para la próxima", "Vuelve al juego"];
   const cap = consolCap();
   const list = cfg.consol.filter(t => kindOf(t) !== "win" || (money(t) >= CONSOL_MIN && money(t) <= cap));
   return list.length >= 2 ? list : ["Buena suerte para la próxima", "Vuelve al juego"];
@@ -751,7 +780,8 @@ function drawWheel() {
 function renderConsol() {
   const c = $("consol");
   c.hidden = !consol;
-  if (consol) c.textContent = `Ruleta de consuelo: premios de ${fmt(CONSOL_MIN)} a ${fmt(consolCap())}. Si sale "Vuelve al juego", regresa a la Envenenada desde el nivel 1.`;
+  if (consol && isCasa()) c.textContent = `Ruleta de consuelo. Si sale "Vuelve al juego", regresa a la Envenenada desde el nivel 1.`;
+  else if (consol) c.textContent = `Ruleta de consuelo: premios de ${fmt(CONSOL_MIN)} a ${fmt(consolCap())}. Si sale "Vuelve al juego", regresa a la Envenenada desde el nivel 1.`;
   drawWheel();
 }
 function spin() {
@@ -904,13 +934,13 @@ function renderMines() {
 }
 function minesUI() {
   const pot = mPot(), lost = M.status === "lost";
-  $("mPot").textContent = fmt(lost ? 0 : pot);
-  $("mInfo").innerHTML = lost ? `Encontró una calavera y perdió <b>${fmt(pot)}</b>. Toca Nueva ronda.`
-    : M.status === "cashed" ? `Cobró <b>${fmt(pot)}</b>. Toca Nueva ronda.`
-    : `Hay <b>${cfg.skulls} calaveras</b> escondidas. Máximo por ronda: <b>${fmt(mMax())}</b>.`;
+  $("mPot").textContent = amt(lost ? 0 : pot);
+  $("mInfo").innerHTML = lost ? `Encontró una calavera y perdió <b>${amt(pot)}</b>. Toca Nueva ronda.`
+    : M.status === "cashed" ? `Cobró <b>${amt(pot)}</b>. Toca Nueva ronda.`
+    : `Hay <b>${cfg.skulls} calaveras</b> escondidas. Máximo por ronda: <b>${amt(mMax())}</b>.`;
   const c = $("mCash");
   c.disabled = M.status !== "play" || pot === 0 || M.busy;
-  c.textContent = lost ? "PERDIÓ" : M.status === "cashed" ? "COBRADO" : pot ? "COBRAR " + fmt(pot) : "COBRAR";
+  c.textContent = lost ? "PERDIÓ" : M.status === "cashed" ? "COBRADO" : pot ? "COBRAR " + amt(pot) : "COBRAR";
 }
 async function minePick(i) {
   if (M.status !== "play" || M.busy || M.opened.includes(i)) return;
@@ -928,7 +958,7 @@ async function minePick(i) {
     await wait(700);
     renderMines(); saveState();
     M.busy = false;
-    show("Buena suerte para la próxima", { kind: "lose", art: "skull", label: lost ? `¡Calavera! Pierde ${fmt(lost)}` : "¡Calavera!" });
+    show("Buena suerte para la próxima", { kind: "lose", art: "skull", label: lost ? `¡Calavera! Pierde ${amt(lost)}` : "¡Calavera!" });
     return;
   }
   M.opened.push(i); openPk(b, c.v);
@@ -936,7 +966,7 @@ async function minePick(i) {
   M.busy = false; minesUI(); saveState();
   if (M.cells.every((cc, j) => cc.t === "x" || M.opened.includes(j))) {
     M.status = "cashed"; await wait(600); renderMines(); saveState(); coinRain(100);
-    show(fmt(mPot()), { kind: "win", label: "¡Encontró todas las calabazas buenas!", sound: sfx.big });
+    show(amt(mPot()), { kind: "win", label: "¡Encontró todas las calabazas buenas!", sound: sfx.big });
   }
 }
 function mineCash() {
@@ -944,7 +974,7 @@ function mineCash() {
   if (M.status !== "play" || !pot || M.busy) return;
   M.status = "cashed"; renderMines(); saveState();
   sfx.chaChing(); coinRain();
-  show(fmt(pot), { kind: "win", label: "Cobra su premio", sound: () => { burst(); sfx.fanfare(); } });
+  show(amt(pot), { kind: "win", label: isCasa() ? "Cambia sus puntos por un premio" : "Cobra su premio", sound: () => { burst(); sfx.fanfare(); } });
 }
 
 /* ---------- Último Vivo ---------- */
@@ -1122,7 +1152,11 @@ $("bFull").onclick = async () => {
 /* ---------- Panel de premios ---------- */
 const lines = id => $(id).value.split("\n").map(s => s.trim()).filter(Boolean);
 function fillPanel(c) {
-  $("panelSala").textContent = salaName();
+  $("panelSala").textContent = salaName() + (isCasa() ? " (casa)" : " (casino)");
+  $("consolRule").innerHTML = isCasa() ? "En una sala de casa aparecen todos los premios que escribas."
+    : "Los premios en dinero van de <b>$10.000</b> hasta el premio del nivel donde perdió. Los que se salgan de ese rango no aparecen en ese giro.";
+  $("minesHelp").innerHTML = isCasa() ? "Los puntos de cada calabaza buena, uno por línea (por ejemplo <b>5 puntos</b>). Al cobrar, el jugador cambia sus puntos por un premio."
+    : "Lo que trae cada calabaza buena, uno por línea. La suma es lo máximo que se puede ganar en una ronda.";
   $("prizeText").value = c.prizes.join("\n"); $("ladderText").value = c.ladder.join("\n");
   $("basePk").value = String(c.basePk); $("minesText").value = c.mines.join("\n"); $("skullsIn").value = c.skulls;
   $("podiumText").value = c.podium.join("\n"); $("players").value = c.players; $("bonusIn").value = c.bonus;
@@ -1134,17 +1168,20 @@ function panelNotes() {
   let p = 1; lad.forEach((_, l) => { p *= (base - 1) / (base + l); });
   $("poisonOdds").textContent = lad.length ? `Nivel ${lad.length}: ${lad.length} de ${base + lad.length - 1} envenenadas. Llega al premio mayor más o menos 1 de cada ${Math.max(1, Math.round(1 / p))} personas.` : "";
   const mx = lines("minesText").reduce((s, v) => s + money(v), 0);
-  $("minesMax").textContent = `Máximo por ronda: ${fmt(mx)} · ${lines("minesText").length + (+$("skullsIn").value || 0)} calabazas en total.`;
+  $("minesMax").textContent = `Máximo por ronda: ${amt(mx)} · ${lines("minesText").length + (+$("skullsIn").value || 0)} calabazas en total.`;
+  if (isCasa()) $("consolNote").textContent = "Aparecen todos estos premios en la ruleta de consuelo.";
+  else {
   const top = Math.max(...lines("ladderText").map(money), 0);
   const out = lines("consolText").filter(t => kindOf(t) === "win" && (money(t) < CONSOL_MIN || money(t) > top));
   $("consolNote").textContent = out.length ? `Nunca aparecerán (fuera de ${fmt(CONSOL_MIN)} a ${fmt(top)}): ${out.join(", ")}.` : `Si pierde en el nivel 1 solo salen premios hasta ${fmt(money(lines("ladderText")[0]))}; en niveles más altos aparecen los mayores.`;
+  }
   const pl = +$("players").value || 20, rv = Math.floor(pl / 10) * (+$("revIn").value || 0);
   $("ghostNote").textContent = `Con ${pl} jugadores resucitan ${rv} por partida. ` + ($("bonusOnIn").checked ? "Bono sorpresa activado." : "Bono sorpresa apagado.");
 }
 ["ladderText", "basePk", "minesText", "skullsIn", "consolText", "players", "revIn", "bonusOnIn"].forEach(id => $(id).addEventListener("input", panelNotes));
 $("bPrizes").onclick = () => { fillPanel(cfg); openMenu(false); $("panel").hidden = false; };
 $("close").onclick = () => { $("panel").hidden = true; };
-$("restore").onclick = () => fillPanel(JSON.parse(JSON.stringify(DEF)));
+$("restore").onclick = () => fillPanel(defFor(tipo()));
 $("save").onclick = () => {
   const pr = lines("prizeText").slice(0, 24), lad = lines("ladderText").slice(0, 8), mi = lines("minesText").slice(0, 20), pod = lines("podiumText").slice(0, 8);
   if (pr.length < 2) { toast("La ruleta necesita al menos 2 premios."); $("prizeText").focus(); return; }
@@ -1155,7 +1192,7 @@ $("save").onclick = () => {
   cfg.prizes = pr; cfg.ladder = lad; cfg.basePk = Math.min(5, Math.max(2, +$("basePk").value || 3));
   cfg.mines = mi; cfg.skulls = Math.min(12, Math.max(1, Math.round(+$("skullsIn").value) || 5));
   cfg.podium = pod; cfg.players = Math.min(60, Math.max(pod.length + 1, Math.round(+$("players").value) || 20));
-  cfg.bonus = $("bonusIn").value.trim() || "$10.000"; cfg.bonusOn = $("bonusOnIn").checked;
+  cfg.bonus = $("bonusIn").value.trim() || defFor(tipo()).bonus; cfg.bonusOn = $("bonusOnIn").checked;
   cfg.revPer10 = Math.min(3, Math.max(0, Math.round(+$("revIn").value) || 0));
   const co = lines("consolText").slice(0, 24);
   if (co.length >= 2) cfg.consol = co;
@@ -1168,16 +1205,35 @@ $("save").onclick = () => {
 };
 
 /* ---------- Salas ---------- */
-let delArm = false;
+let delArm = false, tipoArm = null;
+function setTipo(t) {
+  if (t === tipo()) return;
+  if (G.busy || spinning || M.busy || P.anim) { toast("Espera a que termine la jugada."); return; }
+  // Primer toque avisa; el segundo cambia el tipo y carga los premios de ejemplo de ese tipo
+  if (tipoArm !== t) {
+    tipoArm = t; const n = $("tipoNote"); n.hidden = false;
+    n.textContent = `Toca otra vez "${t === "casa" ? "Casa" : "Casino"}" para cambiar. Se cargan los premios de ejemplo de ${t === "casa" ? "casa" : "casino"} y las partidas de esta sala empiezan de nuevo.`;
+    return;
+  }
+  salas.find(s => s.id === salaId).tipo = t;
+  cfg = defFor(t); persist();
+  LS.del(`sala:${salaId}:st3`); consol = null;
+  loadSala(); renderSalas();
+  toast(`${salaName()} ahora es una sala de ${t}. Revisa los premios en Menú → Premios.`);
+}
+$("tipoCasino").onclick = () => setTipo("casino");
+$("tipoCasa").onclick = () => setTipo("casa");
 function renderSalas() {
   const list = $("salaList"); list.innerHTML = "";
   salas.forEach(s => {
     const b = document.createElement("button");
-    b.className = "chip"; b.textContent = s.name; b.setAttribute("aria-pressed", String(s.id === salaId));
+    b.className = "chip"; b.textContent = s.name + (s.tipo === "casa" ? " · Casa" : ""); b.setAttribute("aria-pressed", String(s.id === salaId));
     b.onclick = () => switchSala(s.id); list.appendChild(b);
   });
-  $("salaTag").textContent = salaName();
+  $("salaTag").textContent = salaName() + (isCasa() ? " · Casa" : "");
   $("salaDel").textContent = "Borrar esta sala"; delArm = false;
+  $("tipoCasino").setAttribute("aria-pressed", String(!isCasa())); $("tipoCasa").setAttribute("aria-pressed", String(isCasa()));
+  tipoArm = null; $("tipoNote").hidden = true;
 }
 function loadSala() {
   loading = true;
@@ -1201,8 +1257,9 @@ function switchSala(id, skipSave) {
 $("bSala").onclick = () => { renderSalas(); $("salaName").value = ""; openMenu(false); $("salasPanel").hidden = false; };
 $("salaClose").onclick = () => { $("salasPanel").hidden = true; };
 $("salaAdd").onclick = () => {
-  const name = $("salaName").value.trim() || "Casino " + (salas.length + 1), id = "s" + Date.now();
-  salas.push({ id, name }); LS.set("salas", salas); switchSala(id);
+  const t = $("salaNewTipo").value === "casa" ? "casa" : "casino", id = "s" + Date.now();
+  const name = $("salaName").value.trim() || (t === "casa" ? "Casa " : "Casino ") + (salas.length + 1);
+  salas.push({ id, name, tipo: t }); LS.set("salas", salas); switchSala(id);
 };
 $("salaRename").onclick = () => {
   const name = $("salaName").value.trim();
