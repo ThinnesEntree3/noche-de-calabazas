@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0} :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Fiesta de Premios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Rubik:wght@400;600;800&display=swap">
+<style>
+/* Layout: una pantalla para proyectar; encabezado con juego actual y menú; escenario central. Dos estilos: Navidad y Casino clásico (data-skin en body). */
+:root {
+  /* Navidad: noche verde pino, rojo, oro y nieve */
+  --bg: #0f2a22; --bg-2: #173a2f; --line: #2c5a4a;
+  --fg: #fbf6ea; --muted: #a9c7b9;
+  --accent: #f2c14e; --accent-dark: #b0861f; --hot: #d7263d; --good: #5fd38d;
+  --c1: #d7263d; --c2: #2e86de; --c3: #f2c14e; --c4: #5fd38d;
+  --display: "Lilita One", "Arial Black", sans-serif;
+  --body: "Rubik", system-ui, sans-serif;
+  color-scheme: dark;
+}
+body[data-skin="casino"] {
+  /* Casino clásico: paño verde, rojo y dorado */
+  --bg: #0b3d2e; --bg-2: #0f4d3a; --line: #1f6b52;
+  --fg: #fff8e7; --muted: #b8d6c8;
+  --accent: #e9c46a; --accent-dark: #a88524; --hot: #c1121f; --good: #7ee081;
+  --c1: #c1121f; --c2: #1a1a1a; --c4: #0f6b4b;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--bg-2) 80%, #fff 6%) 0%, var(--bg) 65%) fixed, var(--bg); color: var(--fg); font-family: var(--body); overflow-x: hidden; }
+button { font-family: var(--body); cursor: pointer; }
+.app { min-height: 100%; display: flex; flex-direction: column; gap: 12px; position: relative; container-type: inline-size;
+  padding-block: 12px 20px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.app > * { position: relative; z-index: 1; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { font-family: var(--display); font-weight: 400; margin: 0; min-width: 0; line-height: 1; color: var(--accent); font-size: clamp(1.7rem, 5.4cqi, 3.4rem); text-shadow: 0 3px 0 rgba(0,0,0,.35); }
+.hud { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.hud small { color: var(--muted); font-size: .95rem; font-weight: 600; display: none; }
+@container (min-width: 700px) { .hud small { display: block; } }
+.menu-btn { background: var(--accent); color: #1b1404; border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 800; font-size: 1.05rem; display: flex; gap: 8px; align-items: center; }
+.menu-btn svg { width: 20px; height: 20px; }
+.chip { background: var(--bg-2); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; font-size: 1rem; font-weight: 600; }
+.chip[aria-pressed="true"] { background: var(--accent); color: #1b1404; border-color: var(--accent); }
+.big { font-family: var(--display); font-size: clamp(1.4rem, 4cqi, 2.4rem); line-height: 1.1; letter-spacing: .02em;
+  background: var(--accent); color: #1b1404; border: 0; border-radius: 16px; padding: 12px 30px; box-shadow: 0 6px 0 var(--accent-dark); }
+.big:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--accent-dark); }
+.big:disabled { opacity: .4; }
+.big.hot { background: var(--hot); color: #fff; box-shadow: 0 6px 0 color-mix(in srgb, var(--hot) 55%, #000); }
+.big.good { background: var(--good); color: #082014; box-shadow: 0 6px 0 color-mix(in srgb, var(--good) 50%, #000); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 0; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.status { margin: 0; text-align: center; font-weight: 800; font-size: clamp(1.1rem, 3cqi, 1.9rem); text-wrap: balance; min-height: 1.3em; }
+.status em { font-style: normal; color: var(--accent); }
+.lights { height: 22px; display: flex; justify-content: space-between; padding-inline: 6px; border-top: 2px solid rgba(0,0,0,.4); }
+.lights i { width: 11px; height: 16px; border-radius: 50% 50% 45% 45%; margin-top: 2px; animation: blink 1.6s infinite; }
+.lights i:nth-child(4n+1) { background: var(--c1); } .lights i:nth-child(4n+2) { background: var(--c3); animation-delay: .4s; }
+.lights i:nth-child(4n+3) { background: var(--c2); animation-delay: .8s; } .lights i:nth-child(4n) { background: var(--c4); animation-delay: 1.2s; }
+@keyframes blink { 50% { opacity: .35; } }
+
+/* ===== Lluvia de Premios ===== */
+.rain-wrap { width: min(100%, 1220px); display: grid; gap: 12px; }
+.rain-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 800; font-size: clamp(1rem, 2.6cqi, 1.6rem); font-variant-numeric: tabular-nums; }
+.rain-top b { color: var(--accent); }
+.gifts { display: grid; grid-template-columns: repeat(var(--gc, 10), minmax(0, 1fr)); gap: clamp(6px, 1.2cqi, 14px); }
+.gift { position: relative; aspect-ratio: 1; border-radius: 12px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(90deg, transparent 42%, var(--accent) 42% 58%, transparent 58%), linear-gradient(transparent 42%, var(--accent) 42% 58%, transparent 58%), var(--gc1, var(--c1));
+  font-family: var(--display); font-size: clamp(1.1rem, 3.6cqi, 2.6rem); text-shadow: 0 2px 0 rgba(0,0,0,.45); box-shadow: 0 5px 0 rgba(0,0,0,.3); transition: transform .12s; }
+.gift:nth-child(3n+2) { --gc1: var(--c2); } .gift:nth-child(3n) { --gc1: var(--c4); }
+.gift.hot { transform: scale(1.14); z-index: 2; box-shadow: 0 0 0 4px #fff, 0 0 30px var(--accent); }
+.gift.open { background: var(--bg-2); border: 2px dashed var(--line); box-shadow: none; color: var(--accent); font-family: var(--body); font-weight: 800; font-size: clamp(.6rem, 1.6cqi, 1.05rem); text-shadow: none; text-align: center; line-height: 1.1; padding: 4px; }
+.gift.open small { display: block; color: var(--muted); font-size: .85em; }
+.gift.won { animation: popIn .5s cubic-bezier(.3,1.6,.5,1); }
+
+.mach-btn b { color: var(--accent); }
+
+/* ===== Duelo de la Bomba ===== */
+.duel { width: min(100%, 1180px); display: grid; gap: 14px; justify-items: center; }
+.finalists { display: flex; gap: clamp(8px, 2cqi, 20px); justify-content: center; flex-wrap: wrap; }
+.fin { min-width: clamp(110px, 18cqi, 210px); text-align: center; padding: 10px 16px; border-radius: 16px; background: var(--bg-2); border: 3px solid var(--line); transition: transform .2s, opacity .3s; }
+.fin small { display: block; color: var(--muted); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: clamp(.65rem, 1.4cqi, .85rem); }
+.fin b { font-family: var(--display); font-weight: 400; font-size: clamp(1.8rem, 5cqi, 3.2rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.fin.turn { border-color: var(--accent); transform: scale(1.08); box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 55%, transparent); }
+.fin.out { opacity: .35; text-decoration: line-through; }
+.fin.win { border-color: var(--good); background: color-mix(in srgb, var(--good) 22%, var(--bg-2)); }
+.board { display: grid; grid-template-columns: repeat(var(--bc, 6), minmax(0, 1fr)); gap: clamp(6px, 1.4cqi, 14px); width: min(100%, 980px); }
+.board .gift { cursor: pointer; border: 0; }
+.board .gift:disabled { cursor: default; }
+.board .gift.safe { background: color-mix(in srgb, var(--good) 20%, var(--bg-2)); border: 2px solid var(--good); color: var(--good); font-family: var(--body); font-weight: 800; font-size: clamp(.7rem, 1.8cqi, 1.1rem); text-shadow: none; box-shadow: none; }
+.board .gift.boom { background: #2a0d0d; border: 2px solid var(--hot); box-shadow: 0 0 30px var(--hot); animation: popIn .4s cubic-bezier(.3,1.6,.5,1); }
+.board .gift.boom svg { width: 70%; }
+.board .gift.suspense { animation: wob .12s infinite; }
+@keyframes wob { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) scale(1.04); } }
+.shake { animation: shake .5s; }
+@keyframes shake { 20%,60% { transform: translateX(-9px); } 40%,80% { transform: translateX(9px); } }
+
+/* ===== Selector de máquinas ===== */
+.machines { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 8px; }
+.machines button { aspect-ratio: 1; border-radius: 12px; font-family: var(--display); font-size: 1.4rem; border: 2px solid var(--line); background: var(--bg); color: var(--muted); text-decoration: line-through; }
+.machines button[aria-pressed="true"] { background: var(--accent); color: #1b1404; border-color: var(--accent); text-decoration: none; }
+
+/* ===== Mayor o Menor ===== */
+.mm-layout { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: clamp(14px, 3cqi, 40px); width: min(100%, 1180px); align-items: center; }
+.ladder { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column-reverse; gap: 8px; }
+.ladder li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--bg-2); border: 2px solid transparent; color: var(--muted); font-weight: 800; font-size: clamp(1rem, 2.4cqi, 1.6rem); font-variant-numeric: tabular-nums; }
+.ladder li small { font-size: .55em; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+.ladder li.safe { border-color: color-mix(in srgb, var(--good) 60%, transparent); }
+.ladder li.safe small::after { content: " · asegurado"; color: var(--good); }
+.ladder li.done { color: var(--accent); }
+.ladder li.now { border-color: var(--accent); color: var(--fg); box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent); }
+.mm-main { display: grid; gap: 14px; justify-items: center; min-width: 0; }
+.cards { display: flex; gap: clamp(14px, 4cqi, 48px); align-items: center; justify-content: center; perspective: 900px; }
+.card { width: clamp(110px, 20cqi, 210px); aspect-ratio: .7; position: relative; transform-style: preserve-3d; transition: transform .6s cubic-bezier(.3,1.3,.5,1); }
+.card.down { transform: rotateY(180deg); }
+.card .face, .card .back { position: absolute; inset: 0; border-radius: 16px; backface-visibility: hidden; box-shadow: 0 14px 30px rgba(0,0,0,.45); }
+.card .face { background: #fffdf7; color: #1b1b1b; display: grid; place-items: center; font-family: var(--display); }
+.card .face.red { color: #c8102e; }
+.card .face b { font-size: clamp(3.6rem, 9cqi, 6.4rem); line-height: 1; }
+.card .face span { position: absolute; font-size: clamp(1.1rem, 2.6cqi, 1.8rem); line-height: 1; }
+.card .face .tl { top: 8%; left: 10%; } .card .face .br { bottom: 8%; right: 10%; transform: rotate(180deg); }
+.card .back { transform: rotateY(180deg); background: repeating-linear-gradient(45deg, var(--hot) 0 10px, color-mix(in srgb, var(--hot) 75%, #000) 10px 20px); border: 6px solid #fffdf7; }
+.card.small { width: clamp(80px, 13cqi, 140px); opacity: .85; }
+.vs { font-family: var(--display); color: var(--muted); font-size: clamp(1.2rem, 3cqi, 2rem); }
+
+/* ===== Ruleta Relámpago ===== */
+#sWheel { flex-direction: row; flex-wrap: wrap; gap: clamp(16px, 5cqi, 70px); }
+.wheel-wrap { position: relative; width: min(80vmin, 560px); max-width: 100%; aspect-ratio: 1; }
+#wheel { width: 100%; height: 100%; display: block; border-radius: 50%; box-shadow: 0 0 0 10px rgba(0,0,0,.35), 0 0 50px color-mix(in srgb, var(--accent) 35%, transparent); }
+.pointer { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); z-index: 2; border-left: 22px solid transparent; border-right: 22px solid transparent; border-top: 44px solid var(--accent); filter: drop-shadow(0 3px 4px rgba(0,0,0,.6)); }
+.hub { position: absolute; inset: 50% auto auto 50%; transform: translate(-50%,-50%); width: 18%; aspect-ratio: 1; border-radius: 50%; background: var(--hot); border: 6px solid var(--accent); display: grid; place-items: center; font-family: var(--display); color: #fff; font-size: clamp(.9rem, 2.4cqi, 1.5rem); }
+.wheel-side { display: grid; gap: 14px; justify-items: center; }
+.tally { display: grid; gap: 2px; text-align: center; }
+.tally small { color: var(--muted); text-transform: uppercase; letter-spacing: .14em; font-weight: 600; font-size: .8rem; }
+.tally b { font-family: var(--display); font-size: clamp(1.6rem, 4cqi, 2.6rem); color: var(--accent); font-variant-numeric: tabular-nums; }
+
+/* ===== Trivia Express ===== */
+.quiz { width: min(100%, 1180px); display: grid; gap: 14px; }
+.q-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 800; color: var(--muted); font-size: clamp(.9rem, 2cqi, 1.2rem); }
+.q-top b { color: var(--accent); }
+.timer { height: 12px; border-radius: 99px; background: rgba(0,0,0,.3); overflow: hidden; }
+.timer i { display: block; height: 100%; width: 100%; background: var(--accent); transform-origin: left; }
+.question { margin: 0; text-align: center; font-family: var(--display); font-weight: 400; font-size: clamp(1.5rem, 4.4cqi, 3rem); line-height: 1.15; text-wrap: balance; min-height: 2.3em; display: grid; place-items: center; }
+.answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(8px, 1.6cqi, 16px); }
+.ans { display: flex; align-items: center; gap: 14px; text-align: left; padding: clamp(10px, 1.8cqi, 18px) clamp(12px, 2cqi, 20px); border-radius: 16px; border: 0; color: #fff;
+  font-weight: 800; font-size: clamp(1rem, 2.8cqi, 1.8rem); line-height: 1.15; box-shadow: 0 5px 0 rgba(0,0,0,.3); min-width: 0; transition: opacity .3s, transform .2s; }
+.ans b { flex: none; width: 1.7em; height: 1.7em; border-radius: 10px; background: rgba(0,0,0,.25); display: grid; place-items: center; font-family: var(--display); font-weight: 400; }
+.ans:nth-child(1) { background: #c8102e; } .ans:nth-child(2) { background: #1f6fd1; } .ans:nth-child(3) { background: #c98a00; } .ans:nth-child(4) { background: #1d8f4e; }
+.ans.dim { opacity: .25; }
+.ans.right { outline: 5px solid #fff; transform: scale(1.03); }
+.ans.wrong { opacity: .5; text-decoration: line-through; }
+.streak { display: flex; justify-content: center; gap: clamp(8px, 1.6cqi, 16px); }
+.streak i { width: clamp(34px, 5cqi, 54px); aspect-ratio: 1; border-radius: 50%; border: 3px solid var(--line); background: var(--bg-2); display: grid; place-items: center; font-style: normal; font-family: var(--display); color: var(--muted); font-size: clamp(1rem, 2.4cqi, 1.6rem); transition: background .3s, transform .3s; }
+.streak i.ok { background: var(--good); border-color: var(--good); color: #082014; transform: scale(1.1); }
+.streak i.now { border-color: var(--accent); color: var(--accent); }
+.streak i.bad { background: var(--hot); border-color: var(--hot); color: #fff; }
+.q-prize { text-align: center; color: var(--muted); font-weight: 600; margin: 0; font-size: clamp(.9rem, 2cqi, 1.2rem); }
+.q-prize b { color: var(--accent); }
+
+/* ===== Resultado ===== */
+.reveal { position: fixed; inset: 0; display: grid; place-items: center; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); padding: 24px max(16px, env(safe-area-inset-left, 0px)); }
+.reveal-card { text-align: center; display: grid; gap: 10px; justify-items: center; animation: popIn .45s cubic-bezier(.3,1.6,.5,1); max-width: 100%; }
+.reveal-card small { font-size: clamp(1rem, 3vw, 1.6rem); color: var(--muted); letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
+.reveal-card strong { font-family: var(--display); font-weight: 400; font-size: clamp(3rem, 14vw, 9rem); line-height: 1; color: var(--accent); text-wrap: balance; text-shadow: 0 5px 0 rgba(0,0,0,.35); }
+.reveal-card strong.long { font-size: clamp(2.2rem, 8vw, 5.4rem); }
+.reveal.lose .reveal-card strong { color: var(--fg); }
+@keyframes popIn { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ===== Menú y paneles ===== */
+.backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 25; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 26; width: min(380px, 92vw); background: var(--bg-2); border-left: 2px solid var(--accent); overflow-y: auto;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) 18px; display: flex; flex-direction: column; gap: 12px; animation: slideIn .22s ease-out; }
+@keyframes slideIn { from { transform: translateX(100%); } }
+.drawer h2 { margin: 6px 0 0; font-size: .8rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.games { display: grid; gap: 8px; }
+.game { text-align: left; display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--bg); color: var(--fg); border: 2px solid var(--line); }
+.game b { font-size: 1.12rem; } .game span { color: var(--muted); font-size: .9rem; }
+.game i { font-style: normal; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.game[aria-current="true"] { border-color: var(--accent); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.panel { position: fixed; inset: auto 0 0 0; z-index: 30; background: var(--bg-2); border-top: 2px solid var(--accent);
+  padding-block: 16px calc(16px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 12px; max-height: 88%; overflow: auto; }
+.panel h2 { margin: 0; font-size: 1.3rem; } .panel h3 { margin: 0; font-size: 1.05rem; color: var(--accent); }
+.panel section { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.panel p { margin: 0; color: var(--muted); font-size: .95rem; max-width: 72ch; }
+.panel p b { color: var(--fg); }
+.panel textarea { width: 100%; min-height: 130px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font: 1rem/1.5 var(--body); }
+.panel label { font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.panel input.chip, .panel select.chip { font-weight: 400; }
+.panel .note { color: var(--good); font-weight: 600; }
+.panel .bar { position: sticky; bottom: calc(-16px - env(safe-area-inset-bottom, 0px)); background: var(--bg-2); padding-block: 10px; }
+.fx { position: fixed; inset: 0; pointer-events: none; z-index: 21; }
+.flash { position: fixed; inset: 0; z-index: 19; pointer-events: none; opacity: 0; }
+.flash.on { animation: flash .7s ease-out; }
+@keyframes flash { 0% { opacity: .6; } 100% { opacity: 0; } }
+
+/* ===== Modo TV ===== */
+body.tv { overflow: hidden; }
+.tv .app { position: fixed; top: 0; left: 0; width: 1280px; height: 720px; min-height: 0; transform-origin: 0 0; padding: 12px 30px 18px; gap: 10px; overflow: hidden; }
+.tv .wheel-wrap { width: 540px; }
+@media (max-width: 720px) {
+  .mm-layout { grid-template-columns: 1fr; }
+  .ladder { flex-direction: row; overflow-x: auto; }
+  .ladder li { flex: 1 0 auto; flex-direction: column; padding: 6px 10px; gap: 2px; }
+  .answers { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .lights i, .reveal-card, .drawer, .gift.won, .flash.on { animation: none !important; } .card { transition: none; } }
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header>
+    <h1 id="title">Lluvia de Premios</h1>
+    <div class="hud">
+      <small id="subtitle">Todo el salón</small>
+      <button class="menu-btn" id="bMenu" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>Menú
+      </button>
+    </div>
+  </header>
+  <div class="lights" id="lights" aria-hidden="true"></div>
+
+  <!-- Lluvia de Premios -->
+  <section class="stage" id="sRain">
+    <div class="rain-wrap">
+      <div class="rain-top"><span>Sorteados <b id="rCount">0</b> de <span id="rTotal">20</span></span><span>Entregado <b id="rPaid">$0</b></span></div>
+      <div class="gifts" id="gifts"></div>
+      <p class="status" id="rStatus"></p>
+      <div class="actions">
+        <button class="big" id="rDraw">¡SORTEAR!</button>
+        <button class="big hot" id="rDraw3">RELÁMPAGO x3</button>
+        <button class="chip mach-btn" id="rMach">Máquinas <b class="machCount">30</b></button>
+        <button class="chip" id="rReset">Nueva ronda</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Duelo de la Bomba -->
+  <section class="stage" id="sDuel" hidden>
+    <div class="duel">
+      <div class="finalists" id="finalists"></div>
+      <div class="board" id="board"></div>
+      <p class="status" id="dStatus"></p>
+      <div class="actions">
+        <button class="big" id="dCall">¡LLAMAR CLIENTES!</button>
+        <button class="chip mach-btn" id="dMach">Máquinas <b class="machCount">30</b></button>
+        <button class="chip" id="dReset">Nuevo duelo</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mayor o Menor -->
+  <section class="stage" id="sMM" hidden>
+    <div class="mm-layout">
+      <ol class="ladder" id="ladder" aria-label="Niveles"></ol>
+      <div class="mm-main">
+        <p class="status" id="mStatus"></p>
+        <div class="cards">
+          <div class="card small" id="cPrev" hidden><div class="face"></div><div class="back"></div></div>
+          <div class="card" id="cNow"><div class="face"></div><div class="back"></div></div>
+          <span class="vs" aria-hidden="true">?</span>
+          <div class="card down" id="cNext"><div class="face"></div><div class="back"></div></div>
+        </div>
+        <div class="actions">
+          <button class="big good" id="mHi">▲ MAYOR</button>
+          <button class="big hot" id="mLo">▼ MENOR</button>
+        </div>
+        <div class="actions">
+          <button class="big" id="mPlant" disabled>PLANTARSE</button>
+          <button class="chip" id="mRestart">Nuevo jugador</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ruleta Relámpago -->
+  <section class="stage" id="sWheel" hidden>
+    <div class="wheel-wrap">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="900" height="900"></canvas>
+      <div class="hub" aria-hidden="true">GIRA</div>
+    </div>
+    <div class="wheel-side">
+      <button class="big" id="spin">¡GIRAR!</button>
+      <div class="tally"><small>Giros</small><b id="wSpins">0</b></div>
+      <div class="tally"><small>Entregado</small><b id="wPaid">$0</b></div>
+      <button class="chip" id="wReset">Reiniciar conteo</button>
+    </div>
+  </section>
+
+  <!-- Trivia Express -->
+  <section class="stage" id="sQuiz" hidden>
+    <div class="quiz">
+      <div class="q-top"><span id="qWho">Jugador</span><span id="qCat"></span><span><b id="qSec">15</b> s</span></div>
+      <div class="streak" id="streak" aria-label="Preguntas acertadas"></div>
+      <div class="timer"><i id="qBar"></i></div>
+      <h2 class="question" id="qText">Toca "Nuevo jugador" para empezar</h2>
+      <div class="answers" id="answers"></div>
+      <p class="q-prize" id="qPrize"></p>
+      <div class="actions">
+        <button class="big" id="qNext">NUEVO JUGADOR</button>
+        <button class="chip mach-btn" id="qCall">Sortear máquina</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="flash" id="flash"></div>
+<canvas class="fx" id="fx" aria-hidden="true"></canvas>
+
+<div class="reveal" id="reveal" hidden>
+  <div class="reveal-card">
+    <small id="revLabel"></small>
+    <strong id="revPrize"></strong>
+    <small id="revHint">Toca para continuar</small>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop" hidden></div>
+<nav class="drawer" id="drawer" hidden aria-label="Menú">
+  <h2>Juegos</h2>
+  <div class="games">
+    <button class="game" data-g="rain"><i>Todo el salón</i><b>Lluvia de Premios</b><span>Sorteo por número: el que sale, gana</span></button>
+    <button class="game" data-g="duel"><i>Sorteo + duelo</i><b>Duelo de la Bomba</b><span>Salen 3 máquinas y se turnan: la bomba elimina</span></button>
+    <button class="game" data-g="mm"><i>Un jugador</i><b>Mayor o Menor</b><span>Adivina la carta y sube de nivel</span></button>
+    <button class="game" data-g="wheel"><i>Uno tras otro</i><b>Ruleta Relámpago</b><span>Gira en 3 segundos, casi todo es premio</span></button>
+    <button class="game" data-g="quiz"><i>Un jugador</i><b>Trivia Express</b><span>Acierta 3 seguidas y gana</span></button>
+  </div>
+  <h2>Estilo</h2>
+  <div class="row">
+    <button class="chip" id="skinNav" aria-pressed="true">Navidad</button>
+    <button class="chip" id="skinCas" aria-pressed="false">Casino clásico</button>
+  </div>
+  <h2>Ajustes</h2>
+  <div class="row">
+    <button class="chip" id="bPrizes">Premios y preguntas</button>
+    <button class="chip mach-btn" id="bMach">Máquinas <b class="machCount">30</b></button>
+    <button class="chip" id="bSound" aria-pressed="true">Sonido</button>
+    <button class="chip" id="bFull">Pantalla completa</button>
+  </div>
+  <div class="row"><button class="chip" id="bCloseMenu">Cerrar menú</button></div>
+</nav>
+
+<div class="panel" id="machPanel" hidden>
+  <h2>Máquinas que juegan</h2>
+  <p>Toca una máquina para quitarla o ponerla. Desmarca las que no tienen cliente: el sorteo solo sale entre las marcadas. Se guarda solo.</p>
+  <div class="row">
+    <label for="machTotal">Máquinas en el salón <input id="machTotal" class="chip" type="number" min="4" max="60" style="width:90px"></label>
+    <button class="chip" id="machAll">Marcar todas</button>
+    <button class="chip" id="machNone">Desmarcar todas</button>
+  </div>
+  <div class="machines" id="machGrid"></div>
+  <div class="row bar"><span class="note" id="machNote"></span><button class="big" id="machClose" style="font-size:1.3rem;padding:8px 26px">LISTO</button></div>
+</div>
+
+<div class="panel" id="panel" hidden>
+  <h2>Premios y preguntas</h2>
+  <section>
+    <h3>Lluvia de Premios</h3>
+    <p>Premios que se reparten al azar entre las máquinas marcadas, uno por línea. Si hay menos premios que máquinas, se repiten en orden. <b>Tú decides cuántos sorteos haces</b>: solo pagas los que salen.</p>
+    <textarea id="pRain" aria-label="Premios de la lluvia"></textarea>
+  </section>
+  <section>
+    <h3>Duelo de la Bomba</h3>
+    <div class="row">
+      <label for="pDuelN">Clientes por duelo <select id="pDuelN" class="chip"><option>2</option><option>3</option><option>4</option></select></label>
+      <label for="pDuelBox">Regalos <input id="pDuelBox" class="chip" type="number" min="6" max="20" style="width:80px"></label>
+      <label for="pDuelBomb">Bombas <input id="pDuelBomb" class="chip" type="number" min="1" max="10" style="width:80px"></label>
+      <label for="pDuelPrize">Premio del ganador <input id="pDuelPrize" class="chip" type="text" style="width:130px"></label>
+    </div>
+    <p>Debe haber al menos una bomba menos que clientes (con 3 clientes, mínimo 2 bombas), así siempre queda un ganador.</p>
+  </section>
+  <section>
+    <h3>Mayor o Menor</h3>
+    <p>Premio de cada nivel, de menor a mayor. Al pasar el nivel asegurado, si pierde se lleva ese premio.</p>
+    <textarea id="pLadder" aria-label="Premios por nivel" style="min-height:120px"></textarea>
+    <label for="pSafe">Nivel asegurado <select id="pSafe" class="chip"></select></label>
+  </section>
+  <section>
+    <h3>Ruleta Relámpago</h3>
+    <p>Un premio por línea. <b>Gira otra vez</b> vuelve a girar; <b>Buena suerte para la próxima</b> no gana. Escribe un premio varias veces para que salga más.</p>
+    <textarea id="pWheel" aria-label="Premios de la ruleta"></textarea>
+  </section>
+  <section>
+    <h3>Trivia Express</h3>
+    <div class="row">
+      <label for="pQPrize">Premio si completa <input id="pQPrize" class="chip" type="text" style="width:130px"></label>
+      <label for="pQNeed">Preguntas para ganar <select id="pQNeed" class="chip"><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+      <label for="pQSec">Segundos <input id="pQSec" class="chip" type="number" min="5" max="60" style="width:80px"></label>
+    </div>
+    <p>Tus propias preguntas, una por línea, con este formato: <b>Pregunta | respuesta correcta | otra | otra | otra</b>. Se mezclan con las de ejemplo; desmarca la casilla para usar solo las tuyas.</p>
+    <textarea id="pQs" aria-label="Preguntas propias" placeholder="¿Cómo se llama este casino? | Casino Dorado | Casino Real | Gran Casino | Casino Rojo"></textarea>
+    <label for="pQBase"><input id="pQBase" type="checkbox"> Incluir las preguntas de ejemplo</label>
+    <p class="note" id="pQNote"></p>
+  </section>
+  <div class="row bar">
+    <button class="big" id="save" style="font-size:1.3rem;padding:8px 26px">GUARDAR</button>
+    <button class="chip" id="restore">Restaurar ejemplo</button>
+    <button class="chip" id="close">Cerrar</button>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="bomb" viewBox="0 0 100 100">
+    <circle cx="44" cy="58" r="34" fill="#1b1b1b"/><circle cx="32" cy="46" r="9" fill="#555"/>
+    <rect x="56" y="20" width="18" height="14" rx="3" transform="rotate(40 65 27)" fill="#444"/>
+    <path d="M70 22 Q80 8 92 12" stroke="#c9a46a" stroke-width="4" fill="none"/>
+    <circle cx="92" cy="12" r="6" fill="#ffb703"/><circle cx="92" cy="12" r="3" fill="#fff3b0"/>
+  </symbol>
+</defs></svg>
+
+<script>
+const $ = id => document.getElementById(id);
+const PERSIST = true;
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const money = t => +String(t).replace(/[^\d]/g, "") || 0;
+const fmt = n => "$" + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const kindOf = t => /buena suerte|sigue participando|pierde/i.test(t) ? "lose" : /otra vez/i.test(t) ? "retry" : "win";
+
+/* ---------- Preguntas de ejemplo (correcta primero) ---------- */
+const BASE_Q = [
+  ["Navidad", "¿Qué noche se celebra el Día de las Velitas en Colombia?", "7 de diciembre", "24 de diciembre", "31 de diciembre", "1 de diciembre"],
+  ["Navidad", "¿Cuántos días dura la Novena de Aguinaldos?", "9 días", "7 días", "12 días", "5 días"],
+  ["Navidad", "¿Qué día empieza la Novena de Aguinaldos?", "16 de diciembre", "1 de diciembre", "8 de diciembre", "20 de diciembre"],
+  ["Navidad", "¿Qué se come con la natilla en la Navidad colombiana?", "Buñuelos", "Arepas", "Empanadas", "Tamales"],
+  ["Navidad", "¿Quién trae los regalos en la tradición colombiana?", "El Niño Dios", "Los Reyes Magos", "San Nicolás", "El Ratón Pérez"],
+  ["Navidad", "¿Cuántas uvas se comen a la medianoche de Año Nuevo?", "12", "10", "7", "24"],
+  ["Navidad", "¿Qué se quema el 31 de diciembre en muchas regiones?", "El Año Viejo", "La pólvora vieja", "El pesebre", "La corona"],
+  ["Navidad", "¿Para qué se da la vuelta a la cuadra con una maleta el 31?", "Para viajar en el año", "Para tener plata", "Para conseguir pareja", "Para tener salud"],
+  ["Colombia", "¿Cuántos departamentos tiene Colombia?", "32", "28", "35", "30"],
+  ["Colombia", "¿Quién escribió \"Cien años de soledad\"?", "Gabriel García Márquez", "Jorge Isaacs", "Álvaro Mutis", "Fernando Botero"],
+  ["Colombia", "¿En qué ciudad es la Feria de las Flores?", "Medellín", "Cali", "Bogotá", "Pereira"],
+  ["Colombia", "¿En qué ciudad es el Carnaval más famoso de Colombia?", "Barranquilla", "Cartagena", "Pasto", "Santa Marta"],
+  ["Colombia", "¿Cuál es el ave nacional de Colombia?", "El cóndor de los Andes", "El colibrí", "El tucán", "La guacamaya"],
+  ["Colombia", "¿Cuál es la flor nacional de Colombia?", "La orquídea", "La rosa", "El girasol", "El clavel"],
+  ["Colombia", "¿Qué se celebra el 20 de julio en Colombia?", "La Independencia", "La Batalla de Boyacá", "El Día del Trabajo", "La Constitución"],
+  ["Colombia", "¿Cuál es el plato típico de Antioquia?", "Bandeja paisa", "Ajiaco", "Sancocho de pescado", "Mute"],
+  ["Colombia", "¿Qué sopa es típica de Bogotá?", "Ajiaco", "Mondongo", "Sancocho", "Cuchuco"],
+  ["Colombia", "¿Cómo se llama el dulce de leche colombiano?", "Arequipe", "Manjar", "Cajeta", "Panelita"],
+  ["Colombia", "¿Qué ritmo es el más famoso de Cali?", "Salsa", "Vallenato", "Cumbia", "Bambuco"],
+  ["Colombia", "¿En qué ciudad está la Torre del Reloj y la ciudad amurallada?", "Cartagena", "Santa Marta", "Popayán", "Villa de Leyva"],
+  ["Colombia", "¿Qué río es el más importante de Colombia?", "Magdalena", "Cauca", "Atrato", "Meta"],
+  ["Música", "¿Qué cantante colombiana canta \"Hips Don't Lie\"?", "Shakira", "Karol G", "Fanny Lu", "Greeicy"],
+  ["Música", "¿Quién canta \"La Bicicleta\" con Shakira?", "Carlos Vives", "Maluma", "J Balvin", "Silvestre Dangond"],
+  ["Música", "¿De qué ciudad es la cantante Karol G?", "Medellín", "Cali", "Barranquilla", "Bogotá"],
+  ["Casino", "¿Cuántas cartas tiene una baraja de póker sin comodines?", "52", "48", "54", "40"],
+  ["Casino", "En el blackjack, ¿cuál es la mejor suma?", "21", "20", "24", "18"],
+  ["Casino", "¿Cuántas casillas tiene una ruleta europea?", "37", "36", "38", "40"],
+  ["Casino", "¿De qué color es el cero en la ruleta?", "Verde", "Rojo", "Negro", "Dorado"],
+  ["Casino", "¿Cuántos puntos tiene un dado en total?", "21", "18", "24", "36"],
+  ["General", "¿Qué planeta es conocido como el planeta rojo?", "Marte", "Júpiter", "Venus", "Saturno"],
+  ["General", "¿Cuál es el océano más grande del mundo?", "Pacífico", "Atlántico", "Índico", "Ártico"],
+  ["General", "¿Cuántos días tiene un año bisiesto?", "366", "365", "364", "367"],
+  ["General", "¿En qué año llegó Cristóbal Colón a América?", "1492", "1500", "1810", "1452"],
+  ["General", "¿Cuál es el animal más grande del mundo?", "La ballena azul", "El elefante", "El tiburón ballena", "La jirafa"],
+  ["General", "¿Cuántos lados tiene un hexágono?", "6", "5", "8", "7"],
+  ["Fútbol", "¿Cuántos minutos dura un partido de fútbol sin adición?", "90", "80", "100", "120"],
+  ["Fútbol", "¿Qué selección ganó el Mundial de 2022?", "Argentina", "Francia", "Brasil", "Croacia"],
+  ["Fútbol", "¿Cuántos jugadores tiene un equipo de fútbol en la cancha?", "11", "10", "9", "12"]
+];
+
+/* ---------- Configuración ---------- */
+const DEF = {
+  skin: "nav",
+  machines: 30, active: Array.from({ length: 30 }, (_, i) => i + 1),
+  rain: ["$20.000", "$30.000", "$20.000", "$50.000", "$20.000", "$30.000", "$20.000", "$20.000", "$30.000", "$100.000",
+         "$20.000", "$30.000", "$20.000", "$40.000", "$20.000", "$30.000", "$20.000", "$20.000", "$50.000", "$20.000"],
+  duelN: 3, duelBox: 12, duelBomb: 3, duelPrize: "$50.000",
+  ladder: ["$20.000", "$30.000", "$40.000", "$60.000", "$100.000"], safe: 2,
+  wheel: ["$20.000", "$30.000", "$20.000", "$50.000", "$20.000", "Gira otra vez", "$30.000", "$20.000", "$40.000", "Buena suerte para la próxima"],
+  qPrize: "$20.000", qNeed: 3, qSec: 15, qCustom: [], qBase: true
+};
+const LS = {
+  get(k) { if (!PERSIST) return null; try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+  set(k, v) { if (!PERSIST) return; try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+let cfg = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("fp2:cfg") || {});
+let game = LS.get("fp2:game") || "rain";
+let sound = true;
+function saveState() { LS.set("fp2:st", { rain: { prizes: RN.prizes, open: RN.open, paid: RN.paid }, wheel: { spins: W.spins, paid: W.paid }, quiz: { order: Q.order, i: Q.i } }); }
+
+/* ---------- Sonido ---------- */
+let ac, nbuf;
+function audio() { if (!sound) return null; try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === "suspended") ac.resume(); return ac; } catch (e) { return null; } }
+function tone(f, type = "sine", t = 0, d = .2, v = .15, f2) {
+  const a = audio(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain(), st = a.currentTime + t;
+  o.type = type; o.frequency.setValueAtTime(f, st); if (f2) o.frequency.exponentialRampToValueAtTime(f2, st + d);
+  g.gain.setValueAtTime(.0001, st); g.gain.exponentialRampToValueAtTime(v, st + .012); g.gain.exponentialRampToValueAtTime(.0001, st + d);
+  o.connect(g).connect(a.destination); o.start(st); o.stop(st + d + .05);
+}
+function noise(t = 0, d = .3, v = .2, freq = 1000, type = "bandpass") {
+  const a = audio(); if (!a) return;
+  if (!nbuf) { nbuf = a.createBuffer(1, a.sampleRate * 2, a.sampleRate); const c = nbuf.getChannelData(0); for (let i = 0; i < c.length; i++) c[i] = Math.random() * 2 - 1; }
+  const s = a.createBufferSource(), fl = a.createBiquadFilter(), g = a.createGain(), st = a.currentTime + t;
+  s.buffer = nbuf; fl.type = type; fl.frequency.value = freq;
+  g.gain.setValueAtTime(v, st); g.gain.exponentialRampToValueAtTime(.0001, st + d);
+  s.connect(fl).connect(g).connect(a.destination); s.start(st); s.stop(st + d + .05);
+}
+const bells = () => [1568, 1976, 2349, 3136].forEach((f, i) => { tone(f, "sine", i * .07, .6, .07); tone(f * 2.01, "sine", i * .07, .3, .02); });
+const sfx = {
+  tick: () => tone(1100, "square", 0, .04, .05),
+  win: () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, "triangle", i * .12, .36, .16)); if (cfg.skin === "nav") bells(); },
+  big: () => { [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, "triangle", i * .11, .4, .15)); bells(); noise(.7, .9, .1, 6000, "highpass"); },
+  lose: () => [392, 349, 311].forEach((f, i) => tone(f, "sawtooth", i * .22, .25, .09)),
+  flip: () => noise(0, .12, .18, 2500, "highpass"),
+  coin: () => { tone(1318, "square", 0, .1, .07); tone(1760, "square", .08, .35, .07); },
+  beat: () => tone(880, "square", 0, .06, .06),
+  buzz: () => tone(140, "square", 0, .45, .14),
+  ding: () => { tone(1046, "triangle", 0, .5, .16); tone(1568, "triangle", .1, .6, .12); },
+  boom: () => { noise(0, .9, .55, 240, "lowpass"); tone(95, "sine", 0, .8, .4, 35); noise(.05, .4, .2, 1800); }
+};
+
+/* ---------- Partículas: nieve o fichas ---------- */
+const cv = $("fx"), cx = cv.getContext("2d");
+let amb = [], parts = [];
+function size() { cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; }
+addEventListener("resize", size); size();
+function seedAmb() { amb = []; for (let i = 0; i < 40; i++) amb.push({ x: Math.random(), y: Math.random(), v: .0005 + Math.random() * .001, s: .5 + Math.random(), ph: Math.random() * 6 }); }
+seedAmb();
+const PAL = () => cfg.skin === "nav" ? ["#d7263d", "#f2c14e", "#5fd38d", "#ffffff", "#2e86de"] : ["#e9c46a", "#c1121f", "#ffffff", "#7ee081"];
+function burst(x = .5, y = .5, n = 120, sp = .02) { const c = PAL(); for (let i = 0; i < n; i++) parts.push({ x, y, vx: (Math.random() - .5) * sp, vy: (Math.random() - .85) * sp, l: 1, c: c[i % c.length], r: 6 + Math.random() * 5, rot: Math.random() * 6 }); }
+function rain(n = 80) { for (let i = 0; i < n; i++) parts.push({ k: "coin", x: Math.random(), y: -.05 - Math.random() * .6, vy: .004 + Math.random() * .005, l: 2, c: "#f2c14e", r: 9 + Math.random() * 7, rot: Math.random() * 6 }); }
+function centerOf(el) { const r = el.getBoundingClientRect(); return [(r.left + r.width / 2) / innerWidth, (r.top + r.height / 2) / innerHeight]; }
+function loop() {
+  const W_ = cv.width, H = cv.height, d = devicePixelRatio;
+  cx.clearRect(0, 0, W_, H);
+  amb.forEach(p => {
+    if (!reduce) { p.y += p.v; p.ph += .02; }
+    if (p.y > 1.05) { p.y = -.05; p.x = Math.random(); }
+    const x = (p.x + Math.sin(p.ph) * .01) * W_, y = p.y * H;
+    if (cfg.skin === "nav") { cx.globalAlpha = .5; cx.fillStyle = "#ffffff"; cx.beginPath(); cx.arc(x, y, 2.4 * d * p.s, 0, 7); cx.fill(); }
+    else { cx.globalAlpha = .18; cx.fillStyle = "#e9c46a"; cx.save(); cx.translate(x, y); cx.rotate(Math.PI / 4); cx.fillRect(-3 * d * p.s, -3 * d * p.s, 6 * d * p.s, 6 * d * p.s); cx.restore(); }
+  });
+  parts.forEach(p => {
+    if (p.k === "coin") { p.y += p.vy; p.rot += .2; p.l -= .006; } else { p.x += p.vx; p.y += p.vy; p.vy += .0004; p.l -= .009; p.rot += .1; }
+    cx.globalAlpha = Math.max(0, Math.min(1, p.l)); cx.fillStyle = p.c;
+    if (p.k === "coin") { cx.beginPath(); cx.ellipse(p.x * W_, p.y * H, Math.max(1, Math.abs(Math.cos(p.rot)) * p.r * d), p.r * d, 0, 0, 7); cx.fill(); cx.strokeStyle = "#a88524"; cx.lineWidth = 2 * d; cx.stroke(); }
+    else { cx.save(); cx.translate(p.x * W_, p.y * H); cx.rotate(p.rot); cx.fillRect(-p.r * d / 2, -p.r * d / 4, p.r * d, p.r * d / 2); cx.restore(); }
+  });
+  cx.globalAlpha = 1; parts = parts.filter(p => p.l > 0 && p.y < 1.2);
+  requestAnimationFrame(loop);
+}
+loop();
+function flash(c) { const f = $("flash"); f.style.background = c; f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); }
+
+/* ---------- Resultado ---------- */
+const reveal = $("reveal");
+let onClose = null;
+function show(prize, o = {}) {
+  reveal.classList.toggle("lose", !!o.lose);
+  $("revLabel").textContent = o.label || "";
+  const s = $("revPrize"); s.textContent = prize; s.classList.toggle("long", String(prize).length > 12);
+  reveal.hidden = false;
+  return new Promise(res => { onClose = res; });
+}
+reveal.addEventListener("click", () => { reveal.hidden = true; const f = onClose; onClose = null; if (f) f(); });
+
+/* ===================== LLUVIA DE PREMIOS ===================== */
+const RN = { prizes: {}, open: {}, paid: 0, busy: false };
+const activeList = () => cfg.active.filter(n => n >= 1 && n <= cfg.machines).sort((a, b) => a - b);
+// Reparte los premios al azar entre las máquinas marcadas
+function rainNew() {
+  const act = activeList(), list = [];
+  for (let i = 0; i < act.length; i++) list.push(cfg.rain[i % cfg.rain.length]);
+  shuffle(list); RN.prizes = {}; act.forEach((m, i) => { RN.prizes[m] = list[i]; });
+  RN.open = {}; RN.paid = 0; RN.busy = false;
+  rainRender(); $("rStatus").innerHTML = "Juegan las máquinas marcadas. <em>¡La que salga, gana!</em>"; saveState();
+}
+// Si se marca una máquina a mitad de ronda, recibe un premio al azar de la lista
+function rainSync() { activeList().forEach(m => { if (!RN.prizes[m]) RN.prizes[m] = pick(cfg.rain); }); }
+const rainShown = () => [...new Set(activeList().concat(Object.keys(RN.open).map(Number)))].sort((a, b) => a - b);
+function rainRender() {
+  rainSync();
+  const g = $("gifts"), list = rainShown(), n = list.length;
+  g.style.setProperty("--gc", n <= 10 ? Math.max(n, 1) : n <= 20 ? Math.ceil(n / 2) : n <= 30 ? Math.max(10, Math.ceil(n / 3)) : Math.max(10, Math.ceil(n / 4)));
+  g.innerHTML = "";
+  list.forEach(i => {
+    const d = document.createElement("div"); d.className = "gift"; d.id = "g" + i;
+    if (RN.open[i]) { d.classList.add("open"); d.innerHTML = `<span>${RN.open[i]}<small>Máq. ${i}</small></span>`; } else d.textContent = i;
+    g.appendChild(d);
+  });
+  rainUI();
+}
+function rainUI() {
+  const shown = rainShown(), opened = Object.keys(RN.open).length, left = activeList().filter(m => !RN.open[m]).length;
+  $("rCount").textContent = opened; $("rTotal").textContent = shown.length; $("rPaid").textContent = fmt(RN.paid);
+  $("rDraw").disabled = RN.busy || left < 1; $("rDraw3").disabled = RN.busy || left < 3;
+}
+async function rainScan(pool, target) {
+  let prev; const steps = 18;
+  for (let s = 0; s < steps; s++) {
+    const n = s === steps - 1 ? target : pick(pool);
+    if (prev) $("g" + prev).classList.remove("hot");
+    $("g" + n).classList.add("hot"); prev = n; sfx.tick();
+    await wait(reduce ? 20 : 40 + Math.pow(s / steps, 3) * 330);
+  }
+  await wait(250); $("g" + target).classList.remove("hot");
+}
+async function rainDraw(k) {
+  if (RN.busy) return;
+  RN.busy = true; rainUI();
+  const won = [];
+  for (let j = 0; j < k; j++) {
+    const pool = activeList().filter(m => !RN.open[m]);
+    if (!pool.length) break;
+    const n = pick(pool);
+    $("rStatus").textContent = k > 1 ? `Relámpago: premio ${j + 1} de ${k}...` : "Buscando la máquina...";
+    await rainScan(pool, n);
+    const p = RN.prizes[n]; RN.open[n] = p; RN.paid += money(p);
+    const el = $("g" + n); el.classList.add("open", "won"); el.innerHTML = `<span>${p}<small>Máq. ${n}</small></span>`;
+    const [x, y] = centerOf(el); burst(x, y, 50, .014); sfx.coin();
+    won.push([n, p]); rainUI(); saveState();
+  }
+  if (won.length === 1) {
+    if (money(won[0][1]) >= 20000) { rain(); sfx.big(); } else sfx.win();
+    await show(won[0][1], { label: `¡Máquina ${won[0][0]}!` });
+  } else if (won.length) { sfx.win(); await show("Máq. " + won.map(w => w[0]).join(" · "), { label: "Relámpago: " + won.map(w => `máquina ${w[0]} gana ${w[1]}`).join(" · ") }); }
+  RN.busy = false; rainUI();
+  $("rStatus").innerHTML = won.length === 1 ? `La máquina <em>${won[0][0]}</em> se lleva <em>${won[0][1]}</em>` : `Ganaron las máquinas <em>${won.map(w => w[0]).join(", ")}</em>`;
+}
+$("rDraw").onclick = () => rainDraw(1);
+$("rDraw3").onclick = () => rainDraw(3);
+$("rReset").onclick = () => { if (!RN.busy) rainNew(); };
+
+/* ===================== DUELO DE LA BOMBA ===================== */
+const DU = { players: [], alive: [], turn: 0, bombs: [], opened: [], phase: "idle", busy: false };
+function duelReset() {
+  DU.players = []; DU.alive = []; DU.opened = []; DU.phase = "idle"; DU.busy = false;
+  $("finalists").innerHTML = Array.from({ length: cfg.duelN }, (_, i) => `<div class="fin" id="f${i}"><small>Cliente ${i + 1}</small><b>?</b></div>`).join("");
+  duelBoard(false);
+  $("dStatus").innerHTML = `Se llaman <em>${cfg.duelN} máquinas</em> al azar. Por turnos abren regalos: <em>la bomba elimina</em>.`;
+  $("dCall").disabled = false; $("dCall").textContent = "¡LLAMAR CLIENTES!";
+}
+function duelBoard(enabled) {
+  const b = $("board"), n = cfg.duelBox; b.innerHTML = "";
+  b.style.setProperty("--bc", n <= 8 ? 4 : n <= 12 ? 6 : n <= 16 ? 8 : 10);
+  for (let i = 0; i < n; i++) {
+    const g = document.createElement("button"); g.className = "gift"; g.textContent = i + 1; g.disabled = !enabled;
+    g.setAttribute("aria-label", "Regalo " + (i + 1)); g.onclick = () => duelPick(i); b.appendChild(g);
+  }
+}
+async function duelCall() {
+  if (DU.busy) return;
+  const pool = activeList();
+  if (pool.length < cfg.duelN) { toast(`Hay que marcar al menos ${cfg.duelN} máquinas.`); return; }
+  DU.busy = true; DU.phase = "calling"; $("dCall").disabled = true; duelBoard(false);
+  const chosen = shuffle(pool.slice()).slice(0, cfg.duelN);
+  $("finalists").innerHTML = chosen.map((_, i) => `<div class="fin" id="f${i}"><small>Cliente ${i + 1}</small><b>?</b></div>`).join("");
+  $("dStatus").textContent = "Llamando clientes...";
+  for (let i = 0; i < chosen.length; i++) {
+    const el = $("f" + i).querySelector("b"), steps = 16;
+    for (let s = 0; s < steps; s++) { el.textContent = pick(pool); sfx.tick(); await wait(reduce ? 20 : 45 + Math.pow(s / steps, 3) * 300); }
+    el.textContent = chosen[i]; $("f" + i).querySelector("small").textContent = "Máquina"; sfx.ding();
+    const [x, y] = centerOf($("f" + i)); burst(x, y, 30, .012);
+    await wait(300);
+  }
+  DU.players = chosen; DU.alive = chosen.map((_, i) => i); DU.turn = 0; DU.opened = [];
+  DU.bombs = shuffle([...Array(cfg.duelBox).keys()]).slice(0, cfg.duelBomb);
+  duelBoard(true); DU.phase = "play"; DU.busy = false; duelTurn();
+  $("dCall").textContent = "LLAMAR OTROS";
+}
+function duelTurn() {
+  DU.players.forEach((_, i) => $("f" + i).classList.toggle("turn", i === DU.alive[DU.turn]));
+  const m = DU.players[DU.alive[DU.turn]];
+  $("dStatus").innerHTML = `Turno de la <em>máquina ${m}</em>: escoge un regalo. Quedan <em>${cfg.duelBomb - DU.opened.filter(k => DU.bombs.includes(k)).length} bombas</em>.`;
+}
+async function duelPick(k) {
+  if (DU.phase !== "play" || DU.busy || DU.opened.includes(k)) return;
+  DU.busy = true; $("dCall").disabled = true;
+  const g = $("board").children[k], who = DU.alive[DU.turn];
+  [...$("board").children].forEach(b => b.disabled = true);
+  g.classList.add("suspense"); for (let i = 0; i < 8; i++) tone(1100, "square", i * .1, .04, .05);
+  await wait(reduce ? 150 : 900);
+  g.classList.remove("suspense"); DU.opened.push(k);
+  if (DU.bombs.includes(k)) {
+    g.classList.add("open", "boom"); g.innerHTML = '<svg viewBox="0 0 100 100"><use href="#bomb"/></svg>';
+    sfx.boom(); flash("#d7263d"); $("board").classList.remove("shake"); void $("board").offsetWidth; $("board").classList.add("shake");
+    const [x, y] = centerOf(g); burst(x, y, 70, .02);
+    $("f" + who).classList.remove("turn"); $("f" + who).classList.add("out");
+    $("dStatus").innerHTML = `¡BOOM! <em>Máquina ${DU.players[who]}</em> queda eliminada.`;
+    DU.alive.splice(DU.turn, 1);
+    if (DU.turn >= DU.alive.length) DU.turn = 0;
+    await wait(1300);
+    if (DU.alive.length === 1) return duelWin();
+  } else {
+    g.classList.add("open", "safe"); g.textContent = "A salvo"; sfx.ding();
+    DU.turn = (DU.turn + 1) % DU.alive.length;
+    await wait(500);
+  }
+  [...$("board").children].forEach((b, i) => b.disabled = DU.opened.includes(i));
+  DU.busy = false; duelTurn();
+}
+async function duelWin() {
+  const w = DU.alive[0], m = DU.players[w];
+  DU.phase = "done";
+  $("f" + w).classList.add("win"); $("f" + w).classList.remove("turn");
+  // Destapa las bombas que quedaban
+  [...$("board").children].forEach((b, i) => { b.disabled = true; if (DU.bombs.includes(i) && !DU.opened.includes(i)) { b.classList.add("open", "boom"); b.style.opacity = ".5"; b.innerHTML = '<svg viewBox="0 0 100 100"><use href="#bomb"/></svg>'; } });
+  $("dStatus").innerHTML = `¡La <em>máquina ${m}</em> sobrevivió!`;
+  rain(90); sfx.big();
+  await show(cfg.duelPrize, { label: `¡Máquina ${m} gana el duelo!` });
+  DU.busy = false; $("dCall").disabled = false;
+}
+$("dCall").onclick = duelCall;
+$("dReset").onclick = () => { if (!DU.busy) duelReset(); };
+
+/* ===================== SELECTOR DE MÁQUINAS ===================== */
+function machUI() { const n = activeList().length; document.querySelectorAll(".machCount").forEach(b => b.textContent = n); $("machNote").textContent = `Juegan ${n} de ${cfg.machines} máquinas`; }
+function machRender() {
+  const g = $("machGrid"); g.innerHTML = "";
+  for (let i = 1; i <= cfg.machines; i++) {
+    const b = document.createElement("button"); b.textContent = i; b.setAttribute("aria-pressed", String(cfg.active.includes(i)));
+    b.onclick = () => { cfg.active = cfg.active.includes(i) ? cfg.active.filter(x => x !== i) : cfg.active.concat(i); b.setAttribute("aria-pressed", String(cfg.active.includes(i))); machSave(); };
+    g.appendChild(b);
+  }
+  $("machTotal").value = cfg.machines; machUI();
+}
+function machSave() { LS.set("fp2:cfg", cfg); machUI(); if (!RN.busy) rainRender(); saveState(); }
+function openMach() { if (RN.busy || DU.busy) { toast("Espera a que termine la jugada."); return; } openMenu(false); machRender(); $("machPanel").hidden = false; }
+$("rMach").onclick = $("dMach").onclick = $("bMach").onclick = openMach;
+$("machClose").onclick = () => { $("machPanel").hidden = true; };
+$("machAll").onclick = () => { cfg.active = Array.from({ length: cfg.machines }, (_, i) => i + 1); machRender(); machSave(); };
+$("machNone").onclick = () => { cfg.active = []; machRender(); machSave(); };
+$("machTotal").addEventListener("change", () => {
+  const old = cfg.machines, n = Math.min(60, Math.max(4, Math.round(+$("machTotal").value) || 30));
+  cfg.machines = n;
+  if (n > old) for (let i = old + 1; i <= n; i++) cfg.active.push(i);
+  cfg.active = cfg.active.filter(i => i <= n);
+  machRender(); machSave();
+});
+
+/* ===================== MAYOR O MENOR ===================== */
+const SUITS = ["♥", "♦", "♣", "♠"], RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const M = { deck: [], cur: null, level: 0, busy: false, over: false };
+function drawCard() { if (!M.deck.length) M.deck = shuffle([...Array(52).keys()]); const c = M.deck.pop(); return { r: c % 13, s: Math.floor(c / 13) }; }
+function paint(el, c) {
+  const f = el.querySelector(".face"); f.className = "face" + (c.s < 2 ? " red" : "");
+  f.innerHTML = `<span class="tl">${RANKS[c.r]}${SUITS[c.s]}</span><b>${RANKS[c.r]}</b><span class="br">${RANKS[c.r]}${SUITS[c.s]}</span>`;
+}
+function mmLadder() {
+  $("ladder").innerHTML = cfg.ladder.map((p, i) =>
+    `<li class="${i < M.level ? "done" : ""} ${i === M.level ? "now" : ""} ${i === cfg.safe - 1 ? "safe" : ""}"><small>Nivel ${i + 1}</small><span>${p}</span></li>`).join("");
+  $("mPlant").disabled = M.busy || M.level === 0;
+  $("mPlant").textContent = M.level ? "PLANTARSE CON " + cfg.ladder[M.level - 1] : "PLANTARSE";
+  $("mHi").disabled = $("mLo").disabled = M.busy;
+}
+function mmStart() {
+  M.level = 0; M.busy = false; M.deck = shuffle([...Array(52).keys()]);
+  M.cur = drawCard(); paint($("cNow"), M.cur); $("cNext").classList.add("down"); $("cPrev").hidden = true;
+  mmLadder(); $("mStatus").innerHTML = "¿La siguiente carta será <em>mayor</em> o <em>menor</em>?";
+}
+async function mmGuess(hi) {
+  if (M.busy) return;
+  M.busy = true; mmLadder();
+  const nx = drawCard(); const nEl = $("cNext");
+  paint(nEl, nx); sfx.flip(); nEl.classList.remove("down");
+  await wait(reduce ? 150 : 750);
+  if (nx.r === M.cur.r) {
+    $("mStatus").innerHTML = "¡Empate! <em>No pasa nada</em>, sigue en el mismo nivel."; sfx.ding();
+  } else if ((nx.r > M.cur.r) === hi) {
+    M.level++; sfx.ding(); const [x, y] = centerOf(nEl); burst(x, y, 50, .014);
+    if (M.level >= cfg.ladder.length) {
+      mmLadder(); rain(100); flash(cfg.skin === "nav" ? "#f2c14e" : "#e9c46a"); sfx.big();
+      await show(cfg.ladder[M.level - 1], { label: "¡Pasó todos los niveles!" });
+      return mmStart();
+    }
+    $("mStatus").innerHTML = `¡Bien! Lleva <em>${cfg.ladder[M.level - 1]}</em>. ¿Se planta o sigue por <em>${cfg.ladder[M.level]}</em>?`;
+  } else {
+    sfx.buzz(); await wait(500);
+    const keep = M.level >= cfg.safe && cfg.safe > 0 ? cfg.ladder[cfg.safe - 1] : null;
+    if (keep) { sfx.win(); await show(keep, { label: "Falló, pero tenía asegurado" }); }
+    else { sfx.lose(); await show("Buena suerte para la próxima", { lose: true, label: "¡Uy, por poquito!" }); }
+    return mmStart();
+  }
+  // La carta nueva pasa a ser la actual
+  await wait(reduce ? 100 : 700);
+  $("cPrev").hidden = false; paint($("cPrev"), M.cur);
+  M.cur = nx; paint($("cNow"), M.cur); nEl.classList.add("down");
+  M.busy = false; mmLadder();
+}
+async function mmPlant() {
+  if (M.busy || !M.level) return;
+  sfx.coin(); rain(); sfx.win();
+  await show(cfg.ladder[M.level - 1], { label: "Se planta y se lleva" });
+  mmStart();
+}
+$("mHi").onclick = () => mmGuess(true);
+$("mLo").onclick = () => mmGuess(false);
+$("mPlant").onclick = mmPlant;
+$("mRestart").onclick = () => { if (!M.busy) mmStart(); };
+
+/* ===================== RULETA RELÁMPAGO ===================== */
+const W = { spins: 0, paid: 0, angle: 0, spinning: false };
+const wc = $("wheel"), wx = wc.getContext("2d");
+function segColors() { return cfg.skin === "nav" ? ["#d7263d", "#1f6b4f", "#f2c14e", "#2e86de", "#fbf6ea"] : ["#c1121f", "#111111", "#c1121f", "#111111", "#e9c46a"]; }
+function drawWheel() {
+  const pr = cfg.wheel, n = pr.length, R = wc.width / 2, step = Math.PI * 2 / n, cols = segColors();
+  wx.clearRect(0, 0, wc.width, wc.height); wx.save(); wx.translate(R, R); wx.rotate(W.angle);
+  for (let i = 0; i < n; i++) {
+    const k = kindOf(pr[i]);
+    const c = k === "lose" ? "#3a3a3a" : k === "retry" ? "#5fd38d" : cols[i % cols.length];
+    wx.beginPath(); wx.moveTo(0, 0); wx.arc(0, 0, R - 4, i * step, (i + 1) * step); wx.closePath();
+    wx.fillStyle = c; wx.fill(); wx.strokeStyle = "rgba(0,0,0,.35)"; wx.lineWidth = 4; wx.stroke();
+    wx.save(); wx.rotate(i * step + step / 2); wx.textAlign = "right"; wx.textBaseline = "middle";
+    wx.fillStyle = ["#f2c14e", "#fbf6ea", "#e9c46a", "#5fd38d"].includes(c) ? "#1b1404" : "#ffffff";
+    const words = pr[i].split(" "); let lines = [pr[i]];
+    if (pr[i].length > 12 && words.length > 1) { let best = 1, diff = 1e9; for (let j = 1; j < words.length; j++) { const d = Math.abs(words.slice(0, j).join(" ").length - words.slice(j).join(" ").length); if (d < diff) { diff = d; best = j; } } lines = [words.slice(0, best).join(" "), words.slice(best).join(" ")]; }
+    const L = Math.max(...lines.map(l => l.length)), sz = Math.min(64, (R * .62) / Math.max(4, L) * 1.7, step * R * .42 / lines.length);
+    wx.font = `800 ${sz}px Rubik, sans-serif`;
+    lines.forEach((l, j) => wx.fillText(l, R - 34, (j - (lines.length - 1) / 2) * sz * 1.08));
+    wx.restore();
+  }
+  wx.restore();
+  for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; wx.beginPath(); wx.arc(R + Math.cos(a) * (R - 14), R + Math.sin(a) * (R - 14), 7, 0, 7); wx.fillStyle = i % 2 ? "#f2c14e" : "#fff6dc"; wx.fill(); }
+}
+function wheelUI() { $("wSpins").textContent = W.spins; $("wPaid").textContent = fmt(W.paid); }
+function spin() {
+  if (W.spinning) return;
+  W.spinning = true; $("spin").disabled = true;
+  const pr = cfg.wheel, n = pr.length, step = Math.PI * 2 / n, T = Math.PI * 2, target = Math.floor(Math.random() * n);
+  const finalMod = -Math.PI / 2 - (target * step + step / 2) + (Math.random() - .5) * step * .7;
+  const start = W.angle, base = start - (start % T);
+  let end = base + T * 5 + ((finalMod % T) + T) % T; if (end - start < T * 4) end += T;
+  const dur = reduce ? 600 : 3000, t0 = performance.now(); let last = -1;
+  function frame(t) {
+    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    W.angle = start + (end - start) * e; drawWheel();
+    const seg = Math.floor((((-Math.PI / 2 - W.angle) % T) + T * 2) % T / step);
+    if (seg !== last) { sfx.tick(); last = seg; }
+    if (p < 1) return requestAnimationFrame(frame);
+    W.spinning = false; $("spin").disabled = false; wheelResult(pr[target]);
+  }
+  requestAnimationFrame(frame);
+}
+async function wheelResult(p) {
+  const k = kindOf(p);
+  W.spins++;
+  if (k === "retry") { sfx.ding(); wheelUI(); saveState(); await show(p, { label: "¡Otra oportunidad!" }); return; }
+  if (k === "lose") { sfx.lose(); wheelUI(); saveState(); await show(p, { lose: true, label: "Esta vez no" }); return; }
+  W.paid += money(p); wheelUI(); saveState();
+  burst(); if (money(p) >= 20000) { rain(); sfx.big(); } else sfx.win();
+  await show(p, { label: "¡Ganó!" });
+}
+$("spin").onclick = spin;
+$("wReset").onclick = () => { if (!W.spinning) { W.spins = 0; W.paid = 0; wheelUI(); saveState(); } };
+
+/* ===================== TRIVIA EXPRESS ===================== */
+// Un jugador debe acertar varias preguntas seguidas (3 por defecto). Si falla una o se acaba el tiempo, pierde.
+const Q = { order: [], i: -1, cur: null, end: 0, phase: "idle", hits: 0, who: "" };
+const qNeed = () => cfg.qNeed || 3;
+function qBank() {
+  const custom = cfg.qCustom.map(l => l.split("|").map(s => s.trim())).filter(p => p.length >= 3 && p.every(Boolean)).map(p => ["Del casino", ...p.slice(0, 5)]);
+  return (cfg.qBase || !custom.length ? BASE_Q : []).concat(custom);
+}
+function qStreak(bad) {
+  $("streak").innerHTML = Array.from({ length: qNeed() }, (_, i) =>
+    `<i class="${i < Q.hits ? "ok" : i === Q.hits ? (bad ? "bad" : (Q.phase !== "idle" ? "now" : "")) : ""}">${i < Q.hits ? "✓" : i + 1}</i>`).join("");
+}
+function qIdle(msg) {
+  Q.phase = "idle"; Q.hits = 0; qStreak();
+  $("qNext").disabled = false; $("qNext").textContent = "NUEVO JUGADOR"; $("qCall").disabled = false;
+  $("qPrize").innerHTML = `Acierta <b>${qNeed()} preguntas seguidas</b> y gana <b>${cfg.qPrize}</b>. Si falla una, pierde.`;
+  if (msg) $("qText").textContent = msg;
+}
+function qAsk() {
+  const bank = qBank();
+  if (!Q.order.length || Q.i >= Q.order.length - 1 || Q.order.some(k => k >= bank.length)) { Q.order = shuffle([...Array(bank.length).keys()]); Q.i = -1; }
+  Q.i++; const q = bank[Q.order[Q.i]];
+  const opts = shuffle(q.slice(2).map((t, j) => ({ t, ok: j === 0 })));
+  Q.cur = { cat: q[0], text: q[1], opts }; saveState();
+  $("qCat").textContent = `Pregunta ${Q.hits + 1} de ${qNeed()} · ${q[0]}`; $("qText").textContent = q[1];
+  const A = $("answers"); A.innerHTML = "";
+  opts.forEach((o, j) => {
+    const b = document.createElement("button"); b.className = "ans"; b.innerHTML = `<b>${"ABCD"[j]}</b><span></span>`;
+    b.querySelector("span").textContent = o.t; b.onclick = () => qAnswer(j); A.appendChild(b);
+  });
+  Q.phase = "running"; $("qNext").disabled = true; $("qNext").textContent = "NUEVO JUGADOR"; $("qCall").disabled = true; qStreak(); sfx.ding();
+  $("qPrize").innerHTML = `Toca la respuesta que diga el cliente · Premio: <b>${cfg.qPrize}</b>`;
+  Q.end = performance.now() + cfg.qSec * 1000; Q.lastSec = -1; qTick();
+}
+function qStart() {
+  if (Q.phase === "running" || Q.phase === "result") return;
+  Q.hits = 0; $("qWho").textContent = Q.who || "Jugador"; qAsk();
+}
+function qTick() {
+  if (Q.phase !== "running") return;
+  const left = Math.max(0, Q.end - performance.now()), s = Math.ceil(left / 1000);
+  $("qBar").style.transform = `scaleX(${left / (cfg.qSec * 1000)})`; $("qSec").textContent = s;
+  if (s !== Q.lastSec) { Q.lastSec = s; if (s <= 5 && s > 0) sfx.beat(); }
+  if (left <= 0) { sfx.buzz(); return qReveal(-1); }
+  requestAnimationFrame(qTick);
+}
+async function qReveal(chosen) {
+  if (Q.phase !== "running") return;
+  Q.phase = "result";
+  const btns = [...$("answers").children];
+  Q.cur.opts.forEach((o, j) => { btns[j].disabled = true; btns[j].classList.add(o.ok ? "right" : (j === chosen ? "wrong" : "dim")); });
+  const right = Q.cur.opts.find(o => o.ok).t;
+  await wait(reduce ? 200 : 800);
+  if (chosen >= 0 && Q.cur.opts[chosen].ok) {
+    Q.hits++; qStreak(); const [x, y] = centerOf(btns[chosen]); burst(x, y, 50, .014);
+    if (Q.hits >= qNeed()) {
+      rain(); sfx.big();
+      await show(cfg.qPrize, { label: `¡Completó las ${qNeed()} preguntas!` });
+      Q.who = ""; return qIdle("¡Ganó! Toca \"Nuevo jugador\" para seguir");
+    }
+    sfx.ding();
+    $("qText").textContent = `¡Correcta! Lleva ${Q.hits} de ${qNeed()}`;
+    $("qPrize").innerHTML = `Le ${qNeed() - Q.hits === 1 ? "falta 1 pregunta" : `faltan ${qNeed() - Q.hits} preguntas`} para ganar <b>${cfg.qPrize}</b>`;
+    $("answers").innerHTML = "";
+    await wait(reduce ? 300 : 1600);
+    qAsk();
+  } else {
+    qStreak(true); sfx.lose();
+    await show(right, { lose: true, label: chosen < 0 ? "Se acabó el tiempo. La respuesta era" : "Falló. La respuesta era" });
+    await show("Buena suerte para la próxima", { lose: true, label: `Acertó ${Q.hits} de ${qNeed()}` });
+    Q.who = ""; qIdle("Toca \"Nuevo jugador\" para empezar");
+    $("answers").innerHTML = "";
+  }
+}
+function qAnswer(j) { if (Q.phase === "running") qReveal(j); }
+async function qCall() {
+  if (Q.phase === "running" || Q.phase === "result" || Q.phase === "calling") return;
+  const pool = activeList();
+  if (!pool.length) { toast("Marca al menos una máquina."); return; }
+  Q.phase = "calling"; $("qCall").disabled = $("qNext").disabled = true;
+  const m = pick(pool), el = $("qText");
+  for (let s = 0; s < 16; s++) { el.textContent = "Máquina " + pick(pool); sfx.tick(); await wait(reduce ? 20 : 45 + Math.pow(s / 16, 3) * 300); }
+  el.textContent = `¡Juega la máquina ${m}!`; sfx.ding(); burst(.5, .4, 50, .014);
+  Q.who = "Máquina " + m; $("qWho").textContent = Q.who;
+  Q.phase = "idle"; $("qCall").disabled = false; $("qNext").disabled = false; $("qNext").textContent = "EMPEZAR";
+}
+$("qNext").onclick = qStart;
+$("qCall").onclick = qCall;
+
+/* ---------- Navegación ---------- */
+const META = { rain: ["sRain", "Lluvia de Premios", "Todo el salón"], duel: ["sDuel", "Duelo de la Bomba", "Sorteo + duelo"], mm: ["sMM", "Mayor o Menor", "Un jugador"], wheel: ["sWheel", "Ruleta Relámpago", "Uno tras otro"], quiz: ["sQuiz", "Trivia Express", "Un jugador"] };
+const busy = () => RN.busy || DU.busy || M.busy || W.spinning || ["running", "result", "calling"].includes(Q.phase) || !reveal.hidden;
+function setGame(g) {
+  if (!META[g]) g = "rain";
+  game = g; LS.set("fp2:game", g);
+  Object.entries(META).forEach(([k, m]) => { $(m[0]).hidden = k !== g; });
+  $("title").textContent = META[g][1]; $("subtitle").textContent = META[g][2];
+  document.querySelectorAll(".game").forEach(b => b.setAttribute("aria-current", String(b.dataset.g === g)));
+  if (g === "wheel") drawWheel();
+}
+function setSkin(s) {
+  cfg.skin = s; LS.set("fp2:cfg", cfg); document.body.dataset.skin = s;
+  $("skinNav").setAttribute("aria-pressed", String(s === "nav")); $("skinCas").setAttribute("aria-pressed", String(s === "casino"));
+  $("lights").hidden = s !== "nav"; drawWheel();
+}
+function openMenu(o) { $("drawer").hidden = !o; $("backdrop").hidden = !o; $("bMenu").setAttribute("aria-expanded", String(o)); }
+$("bMenu").onclick = () => openMenu(true);
+$("backdrop").onclick = $("bCloseMenu").onclick = () => openMenu(false);
+document.querySelectorAll(".game").forEach(b => b.onclick = () => { if (busy()) { toast("Espera a que termine la jugada."); return; } setGame(b.dataset.g); openMenu(false); });
+$("skinNav").onclick = () => setSkin("nav");
+$("skinCas").onclick = () => setSkin("casino");
+$("bSound").onclick = () => { sound = !sound; $("bSound").setAttribute("aria-pressed", String(sound)); $("bSound").textContent = sound ? "Sonido" : "Sin sonido"; };
+function toast(msg) {
+  let t = $("toast");
+  if (!t) { t = document.createElement("div"); t.id = "toast"; t.style.cssText = "position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;background:var(--bg-2);color:var(--fg);border:2px solid var(--accent);border-radius:14px;padding:14px 18px;max-width:min(92vw,520px);font-size:1rem;line-height:1.4;text-align:center"; t.onclick = () => { t.hidden = true; }; document.body.appendChild(t); }
+  t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, msg.length > 80 ? 9000 : 4000);
+}
+$("bFull").onclick = async () => {
+  const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+  try { if (document.fullscreenElement || document.webkitFullscreenElement) { await (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; } if (!req) throw 0; await req.call(el); openMenu(false); }
+  catch (e) { toast("Este celular no permite pantalla completa aquí. Gira el celular en horizontal; en el TV se verá casi completo."); }
+};
+
+/* ---------- Panel ---------- */
+const lines = id => $(id).value.split("\n").map(s => s.trim()).filter(Boolean);
+function fill(c) {
+  $("pDuelN").value = String(c.duelN); $("pDuelBox").value = c.duelBox; $("pDuelBomb").value = c.duelBomb; $("pDuelPrize").value = c.duelPrize;
+  $("pRain").value = c.rain.join("\n"); $("pLadder").value = c.ladder.join("\n");
+  safeOpts(c.ladder.length, c.safe); $("pWheel").value = c.wheel.join("\n");
+  $("pQPrize").value = c.qPrize; $("pQNeed").value = String(c.qNeed || 3); $("pQSec").value = c.qSec; $("pQs").value = c.qCustom.join("\n"); $("pQBase").checked = !!c.qBase; qNote();
+}
+function safeOpts(n, sel) { $("pSafe").innerHTML = `<option value="0">Sin asegurado</option>` + Array.from({ length: Math.max(0, n - 1) }, (_, i) => `<option value="${i + 1}">Nivel ${i + 1}</option>`).join(""); $("pSafe").value = String(Math.min(sel, Math.max(0, n - 1))); }
+$("pLadder").addEventListener("input", () => safeOpts(lines("pLadder").length, +$("pSafe").value));
+function qNote() {
+  const ok = lines("pQs").filter(l => { const p = l.split("|").map(s => s.trim()); return p.length >= 3 && p.every(Boolean); }).length, bad = lines("pQs").length - ok;
+  $("pQNote").textContent = `${ok} pregunta${ok === 1 ? "" : "s"} propia${ok === 1 ? "" : "s"} lista${ok === 1 ? "" : "s"}` + (bad ? ` · ${bad} sin el formato correcto (no se usarán)` : "") + ` · ${BASE_Q.length} de ejemplo.`;
+}
+$("pQs").addEventListener("input", qNote);
+$("bPrizes").onclick = () => { if (busy()) { toast("Espera a que termine la jugada."); return; } fill(cfg); openMenu(false); $("panel").hidden = false; };
+$("close").onclick = () => { $("panel").hidden = true; };
+$("restore").onclick = () => fill(Object.assign(JSON.parse(JSON.stringify(DEF)), { qCustom: lines("pQs"), machines: cfg.machines, active: cfg.active }));
+$("save").onclick = () => {
+  const rn = lines("pRain"), ld = lines("pLadder").slice(0, 8), wh = lines("pWheel").slice(0, 24);
+  if (!rn.length) { toast("La Lluvia de Premios necesita al menos 1 premio."); return; }
+  if (ld.length < 2) { toast("Mayor o Menor necesita al menos 2 niveles."); return; }
+  if (wh.length < 2) { toast("La ruleta necesita al menos 2 premios."); return; }
+  const oldRain = JSON.stringify(cfg.rain);
+  const dn = +$("pDuelN").value || 3, dbx = Math.min(20, Math.max(6, Math.round(+$("pDuelBox").value) || 12));
+  const dbm = Math.min(dbx - 1, Math.max(dn - 1, Math.round(+$("pDuelBomb").value) || dn - 1));
+  Object.assign(cfg, { duelN: dn, duelBox: dbx, duelBomb: dbm, duelPrize: $("pDuelPrize").value.trim() || "$50.000", rain: rn, ladder: ld, safe: +$("pSafe").value || 0, wheel: wh,
+    qPrize: $("pQPrize").value.trim() || "$20.000", qNeed: Math.min(5, Math.max(2, +$("pQNeed").value || 3)), qSec: Math.min(60, Math.max(5, Math.round(+$("pQSec").value) || 15)), qCustom: lines("pQs"), qBase: $("pQBase").checked });
+  LS.set("fp2:cfg", cfg);
+  if (oldRain !== JSON.stringify(cfg.rain)) rainNew();
+  if (!DU.busy && DU.phase !== "play") duelReset();
+  mmStart(); drawWheel(); Q.order = []; if (Q.phase === "idle") qIdle();
+  $("panel").hidden = true; toast(dbm !== (Math.round(+$("pDuelBomb").value) || 0) ? `Guardado. Bombas ajustadas a ${dbm} para que siempre haya ganador.` : "Guardado");
+};
+
+/* ---------- Modo TV ---------- */
+const app = document.querySelector(".app");
+const probe = document.createElement("div");
+probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)";
+document.body.appendChild(probe);
+function fit() {
+  const w = innerWidth, h = innerHeight, tv = w > h && w >= 560;
+  document.body.classList.toggle("tv", tv);
+  if (!tv) { app.style.transform = app.style.width = app.style.height = app.style.paddingLeft = app.style.paddingRight = ""; return; }
+  const ar = w / h; let Wd = 1280, H = 720;
+  if (ar > 16 / 9) Wd = Math.round(720 * ar); else H = Math.round(1280 / ar);
+  const s = w / Wd, cs = getComputedStyle(probe);
+  app.style.width = Wd + "px"; app.style.height = H + "px";
+  app.style.paddingLeft = Math.max(30, (parseFloat(cs.paddingLeft) || 0) / s + 12) + "px";
+  app.style.paddingRight = Math.max(30, (parseFloat(cs.paddingRight) || 0) / s + 12) + "px";
+  app.style.transform = `scale(${s})`;
+}
+addEventListener("resize", fit);
+addEventListener("orientationchange", () => setTimeout(fit, 200));
+async function wake() { try { if ("wakeLock" in navigator) await navigator.wakeLock.request("screen"); } catch (e) {} }
+document.addEventListener("click", wake, { once: true });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) wake(); });
+if (/NocheCalabazasApp|FiestaPremiosApp/.test(navigator.userAgent)) $("bFull").hidden = true;
+
+/* ---------- Arranque ---------- */
+$("lights").innerHTML = "<i></i>".repeat(28);
+const st = LS.get("fp2:st") || {};
+if (st.rain && st.rain.prizes && !Array.isArray(st.rain.prizes) && Object.keys(st.rain.prizes).length) { RN.prizes = st.rain.prizes; RN.open = st.rain.open || {}; RN.paid = st.rain.paid || 0; rainRender(); $("rStatus").innerHTML = "Juegan las máquinas marcadas. <em>¡La que salga, gana!</em>"; } else rainNew();
+duelReset(); machUI();
+if (st.wheel) { W.spins = st.wheel.spins || 0; W.paid = st.wheel.paid || 0; }
+if (st.quiz && Array.isArray(st.quiz.order)) { Q.order = st.quiz.order; Q.i = st.quiz.i ?? -1; }
+wheelUI(); mmStart(); qIdle(); setSkin(cfg.skin); setGame(game); fit();
+document.fonts && document.fonts.ready.then(drawWheel);
+</script>
+
+</body>
+</html>
