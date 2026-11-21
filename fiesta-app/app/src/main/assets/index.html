@@ -124,6 +124,23 @@ h1 { font-family: var(--display); font-weight: 400; margin: 0; min-width: 0; lin
 .ladder li.safe { border-color: color-mix(in srgb, var(--good) 60%, transparent); }
 .ladder li.safe small::after { content: " · asegurado"; color: var(--good); }
 .ladder li.done { color: var(--accent); }
+.orn-row { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: clamp(8px, 2.4cqi, 26px); width: min(100%, calc(var(--n, 3) * 190px)); align-items: start; }
+.orn { position: relative; background: none; border: 0; padding: 0; color: var(--fg); aspect-ratio: .8; min-width: 0; transform-origin: 50% 0; animation: sway 3s ease-in-out infinite; }
+.orn:nth-child(2n) { animation-delay: -1.5s; }
+.orn::before { content: ""; position: absolute; left: 50%; top: -40px; width: 2px; height: 46px; background: var(--muted); opacity: .5; }
+.orn svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.orn .n { position: absolute; inset: 22% 0 0; display: grid; place-items: center; font-family: var(--display); font-size: clamp(1.4rem, 4.4cqi, 3rem); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.4); }
+.orn .lbl { position: absolute; left: 50%; bottom: -6%; transform: translateX(-50%); white-space: nowrap; font-weight: 800; font-size: clamp(.75rem, 1.9cqi, 1.15rem); padding: 3px 10px; border-radius: 999px; }
+.orn.ok .lbl { background: var(--good); color: #082014; }
+.orn.bad .lbl { background: var(--hot); color: #fff; }
+.orn.ok svg { filter: drop-shadow(0 0 16px #fff6b0); }
+.orn.bad, .orn.ok { animation: none; }
+.orn.dim { opacity: .35; }
+.orn.suspense { animation: wobble .12s infinite; }
+@keyframes wobble { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes sway { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+.ladder li .odds { display: block; font-size: 1.1em; color: var(--hot); letter-spacing: 0; text-transform: none; }
+.esf-main { display: grid; gap: 30px; justify-items: center; min-width: 0; padding-top: 30px; }
 .ladder li.now { border-color: var(--accent); color: var(--fg); box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent); }
 .mm-main { display: grid; gap: 14px; justify-items: center; min-width: 0; }
 .cards { display: flex; gap: clamp(14px, 4cqi, 48px); align-items: center; justify-content: center; perspective: 900px; }
@@ -283,6 +300,21 @@ body.tv { overflow: hidden; }
     </div>
   </section>
 
+  <!-- La Esfera Rota -->
+  <section class="stage" id="sEsf" hidden>
+    <div class="mm-layout" id="esfLayout">
+      <ol class="ladder" id="eLadder" aria-label="Niveles"></ol>
+      <div class="esf-main">
+        <p class="status" id="eStatus"></p>
+        <div class="orn-row" id="eRow"></div>
+        <div class="actions">
+          <button class="big good" id="ePlant" disabled>PLANTARSE</button>
+          <button class="chip" id="eRestart">Nueva partida</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Mayor o Menor -->
   <section class="stage" id="sMM" hidden>
     <div class="mm-layout">
@@ -357,6 +389,7 @@ body.tv { overflow: hidden; }
     <button class="game" data-g="rain"><i>Todo el salón</i><b>Lluvia de Premios</b><span>Sorteo por número: el que sale, gana</span></button>
     <button class="game" data-g="vivo"><i>Todo el salón</i><b>Último Vivo</b><span>Van saliendo máquinas; las últimas ganan</span></button>
     <button class="game" data-g="duel"><i>Sorteo + duelo</i><b>Duelo de la Bomba</b><span>Salen 3 máquinas y se turnan: la bomba elimina</span></button>
+    <button class="game" data-g="esf"><i>Un jugador</i><b>La Esfera Rota</b><span>Escoge esferas del árbol; la rota elimina</span></button>
     <button class="game" data-g="mm"><i>Un jugador</i><b>Mayor o Menor</b><span>Adivina la carta y sube de nivel</span></button>
     <button class="game" data-g="wheel"><i>Uno tras otro</i><b>Ruleta Relámpago</b><span>Gira en 3 segundos, casi todo es premio</span></button>
     <button class="game" data-g="quiz"><i>Un jugador</i><b>Trivia Express</b><span>Acierta 3 seguidas y gana</span></button>
@@ -416,6 +449,13 @@ body.tv { overflow: hidden; }
     <p>Debe haber al menos una bomba menos que clientes (con 3 clientes, mínimo 2 bombas), así siempre queda un ganador.</p>
   </section>
   <section>
+    <h3>La Esfera Rota</h3>
+    <p>Premio de cada nivel, de menor a mayor. Cada nivel cuelga una esfera más y una rota más.</p>
+    <textarea id="pEsf" aria-label="Premios por nivel de La Esfera Rota" style="min-height:110px"></textarea>
+    <label for="pEsfBase">Esferas en el nivel 1 <select id="pEsfBase" class="chip"><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+    <p class="note" id="pEsfNote"></p>
+  </section>
+  <section>
     <h3>Mayor o Menor</h3>
     <p>Premio de cada nivel, de menor a mayor. Al pasar el nivel asegurado, si pierde se lleva ese premio.</p>
     <textarea id="pLadder" aria-label="Premios por nivel" style="min-height:120px"></textarea>
@@ -446,6 +486,19 @@ body.tv { overflow: hidden; }
 </div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <radialGradient id="ornG" cx="35%" cy="35%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".3" stop-color="currentColor" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient>
+  <symbol id="ornament" viewBox="0 0 100 125">
+    <rect x="40" y="6" width="20" height="14" rx="3" fill="#d9b44a"/><path d="M45 6 Q50 -4 55 6" stroke="#d9b44a" stroke-width="3" fill="none"/>
+    <circle cx="50" cy="70" r="48" fill="currentColor"/><circle cx="50" cy="70" r="48" fill="url(#ornG)"/>
+    <path d="M6 62 Q50 80 94 62" stroke="rgba(255,255,255,.5)" stroke-width="4" fill="none"/>
+    <path d="M8 82 Q50 98 92 82" stroke="rgba(255,255,255,.35)" stroke-width="3" fill="none"/>
+  </symbol>
+  <symbol id="broken" viewBox="0 0 100 125">
+    <rect x="40" y="6" width="20" height="14" rx="3" fill="#d9b44a"/>
+    <path d="M50 22 C20 22 4 44 4 64 L22 58 L30 72 L44 60 L52 74 L64 58 L76 70 L96 62 C94 40 78 22 50 22 Z" fill="currentColor" opacity=".9"/>
+    <path d="M14 96 L30 84 L36 100 Z M48 108 L60 92 L68 110 Z M78 92 L90 84 L86 102 Z M22 112 L30 104 L34 118 Z" fill="currentColor" opacity=".8"/>
+    <path d="M22 58 L30 72 L44 60 L52 74 L64 58 L76 70" stroke="#fff" stroke-width="2" fill="none" opacity=".6"/>
+  </symbol>
   <symbol id="bomb" viewBox="0 0 100 100">
     <circle cx="44" cy="58" r="34" fill="#1b1b1b"/><circle cx="32" cy="46" r="9" fill="#555"/>
     <rect x="56" y="20" width="18" height="14" rx="3" transform="rotate(40 65 27)" fill="#444"/>
@@ -516,6 +569,7 @@ const DEF = {
   duelN: 3, duelBox: 12, duelBomb: 3, duelPrize: "$50.000",
   podium: ["$80.000", "$50.000", "$30.000"], revPer10: 1, bonusOn: false, bonus: "$20.000",
   ladder: ["$20.000", "$30.000", "$40.000", "$60.000", "$100.000"], safe: 2,
+  esf: ["$20.000", "$30.000", "$40.000", "$50.000"], esfBase: 3,
   wheel: ["$20.000", "$30.000", "$20.000", "$50.000", "$20.000", "Gira otra vez", "$30.000", "$20.000", "$40.000", "Buena suerte para la próxima"],
   qPrize: "$20.000", qNeed: 3, qSec: 15, qCustom: [], qBase: true
 };
@@ -557,6 +611,7 @@ const sfx = {
   beat: () => tone(880, "square", 0, .06, .06),
   buzz: () => tone(140, "square", 0, .45, .14),
   ding: () => { tone(1046, "triangle", 0, .5, .16); tone(1568, "triangle", .1, .6, .12); },
+  glass: () => { noise(0, .5, .45, 5000, "highpass"); for (let i = 0; i < 9; i++) tone(2400 + Math.random() * 3200, "triangle", .02 + Math.random() * .35, .14, .07); tone(120, "sine", 0, .3, .25, 60); },
   boom: () => { noise(0, .9, .55, 240, "lowpass"); tone(95, "sine", 0, .8, .4, 35); noise(.05, .4, .2, 1800); }
 };
 
@@ -877,6 +932,75 @@ $("machTotal").addEventListener("change", () => {
   machRender(); machSave();
 });
 
+/* ===================== LA ESFERA ROTA ===================== */
+// Igual que la Calabaza Envenenada: en el nivel l hay (base + l) esferas y (l + 1) rotas.
+const E = { level: 0, bad: [], busy: false };
+const ORN = ["#d7263d", "#2e86de", "#f2c14e", "#5fd38d", "#b05cff", "#ff7a3d", "#e0307a"];
+const eCount = l => (cfg.esfBase || 3) + l, eBad = l => l + 1;
+function eLadder() {
+  $("eLadder").innerHTML = cfg.esf.map((p, i) =>
+    `<li class="${i < E.level ? "done" : ""} ${i === E.level ? "now" : ""}"><small>Nivel ${i + 1}<span class="odds">${eBad(i)} rota${eBad(i) > 1 ? "s" : ""} de ${eCount(i)}</span></small><span>${p}</span></li>`).join("");
+  $("ePlant").disabled = E.busy || E.level === 0;
+  $("ePlant").textContent = E.level ? "PLANTARSE CON " + cfg.esf[E.level - 1] : "PLANTARSE";
+}
+function eRow() {
+  const n = eCount(E.level), row = $("eRow"); row.style.setProperty("--n", n); row.innerHTML = "";
+  E.bad = shuffle([...Array(n).keys()]).slice(0, eBad(E.level));
+  const cols = shuffle(ORN.slice());
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement("button"); b.className = "orn"; b.style.color = cols[i % cols.length];
+    b.setAttribute("aria-label", "Esfera " + (i + 1));
+    b.innerHTML = `<svg viewBox="0 0 100 125"><use href="#ornament"/></svg><span class="n">${i + 1}</span>`;
+    b.onclick = () => ePick(i); row.appendChild(b);
+  }
+  const nb = eBad(E.level);
+  $("eStatus").innerHTML = `Nivel ${E.level + 1}: escoge una esfera. <em>${nb === 1 ? "Una está rota" : nb + " están rotas"}.</em>`;
+}
+function eStart(l = 0) { E.level = l; E.busy = false; eLadder(); eRow(); }
+function eOpen(b, bad) {
+  b.classList.add(bad ? "bad" : "ok");
+  if (bad) { b.querySelector("use").setAttribute("href", "#broken"); b.querySelector(".n").remove(); }
+  b.insertAdjacentHTML("beforeend", `<span class="lbl">${bad ? "Rota" : "Intacta"}</span>`);
+}
+async function ePick(i) {
+  if (E.busy) return;
+  E.busy = true; eLadder();
+  const btns = [...$("eRow").children], b = btns[i];
+  btns.forEach(x => x.disabled = true);
+  b.classList.add("suspense"); for (let k = 0; k < 10; k++) tone(900 + k * 60, "square", k * .09, .04, .05);
+  await wait(reduce ? 200 : 1000);
+  b.classList.remove("suspense");
+  if (E.bad.includes(i)) {
+    eOpen(b, true); sfx.glass(); flash("#d7263d");
+    const el = $("esfLayout"); el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake");
+    const [x, y] = centerOf(b); burst(x, y, 60, .02);
+    await wait(700);
+    btns.forEach((o, j) => { if (j !== i) { eOpen(o, E.bad.includes(j)); o.classList.add("dim"); } });
+    await wait(900); sfx.lose();
+    await show("Buena suerte para la próxima", { lose: true, label: "¡Se rompió la esfera!" });
+    return eStart(0);
+  }
+  eOpen(b, false); bells(); const [x, y] = centerOf(b); burst(x, y, 50, .014);
+  E.level++;
+  if (E.level >= cfg.esf.length) {
+    eLadder(); await wait(800); rain(100); flash("#f2c14e"); sfx.big();
+    await show(cfg.esf[cfg.esf.length - 1], { label: "¡Pasó todos los niveles!" });
+    return eStart(0);
+  }
+  $("eStatus").innerHTML = `¡Intacta! Lleva <em>${cfg.esf[E.level - 1]}</em>. ¿Se planta o sigue por <em>${cfg.esf[E.level]}</em>?`;
+  E.busy = false; eLadder();
+  await wait(reduce ? 200 : 1400);
+  if (!E.busy) eRow();
+}
+async function ePlant() {
+  if (E.busy || !E.level) return;
+  E.busy = true; sfx.coin(); rain(); sfx.win();
+  await show(cfg.esf[E.level - 1], { label: "Se planta y se lleva" });
+  eStart(0);
+}
+$("ePlant").onclick = ePlant;
+$("eRestart").onclick = () => { if (!E.busy) eStart(0); };
+
 /* ===================== MAYOR O MENOR ===================== */
 const SUITS = ["♥", "♦", "♣", "♠"], RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 const M = { deck: [], cur: null, level: 0, busy: false, over: false };
@@ -1082,8 +1206,8 @@ $("qNext").onclick = qStart;
 $("qCall").onclick = qCall;
 
 /* ---------- Navegación ---------- */
-const META = { vivo: ["sVivo", "Último Vivo", "Todo el salón"], rain: ["sRain", "Lluvia de Premios", "Todo el salón"], duel: ["sDuel", "Duelo de la Bomba", "Sorteo + duelo"], mm: ["sMM", "Mayor o Menor", "Un jugador"], wheel: ["sWheel", "Ruleta Relámpago", "Uno tras otro"], quiz: ["sQuiz", "Trivia Express", "Un jugador"] };
-const busy = () => RN.busy || V.busy || DU.busy || M.busy || W.spinning || ["running", "result", "calling"].includes(Q.phase) || !reveal.hidden;
+const META = { vivo: ["sVivo", "Último Vivo", "Todo el salón"], esf: ["sEsf", "La Esfera Rota", "Un jugador"], rain: ["sRain", "Lluvia de Premios", "Todo el salón"], duel: ["sDuel", "Duelo de la Bomba", "Sorteo + duelo"], mm: ["sMM", "Mayor o Menor", "Un jugador"], wheel: ["sWheel", "Ruleta Relámpago", "Uno tras otro"], quiz: ["sQuiz", "Trivia Express", "Un jugador"] };
+const busy = () => RN.busy || V.busy || E.busy || DU.busy || M.busy || W.spinning || ["running", "result", "calling"].includes(Q.phase) || !reveal.hidden;
 function setGame(g) {
   if (!META[g]) g = "rain";
   game = g; LS.set("fp2:game", g);
@@ -1121,6 +1245,7 @@ function fill(c) {
   $("pPodium").value = c.podium.join("\n"); $("pRev").value = c.revPer10; $("pBonusOn").checked = !!c.bonusOn; $("pBonus").value = c.bonus;
   $("pDuelN").value = String(c.duelN); $("pDuelBox").value = c.duelBox; $("pDuelBomb").value = c.duelBomb; $("pDuelPrize").value = c.duelPrize;
   $("pRain").value = c.rain.join("\n"); $("pLadder").value = c.ladder.join("\n");
+  $("pEsf").value = (c.esf || DEF.esf).join("\n"); $("pEsfBase").value = String(c.esfBase || 3); esfNote();
   safeOpts(c.ladder.length, c.safe); $("pWheel").value = c.wheel.join("\n");
   $("pQPrize").value = c.qPrize; $("pQNeed").value = String(c.qNeed || 3); $("pQSec").value = c.qSec; $("pQs").value = c.qCustom.join("\n"); $("pQBase").checked = !!c.qBase; qNote();
 }
@@ -1131,11 +1256,19 @@ function qNote() {
   $("pQNote").textContent = `${ok} pregunta${ok === 1 ? "" : "s"} propia${ok === 1 ? "" : "s"} lista${ok === 1 ? "" : "s"}` + (bad ? ` · ${bad} sin el formato correcto (no se usarán)` : "") + ` · ${BASE_Q.length} de ejemplo.`;
 }
 $("pQs").addEventListener("input", qNote);
+function esfNote() {
+  const lv = lines("pEsf").length, b = +$("pEsfBase").value || 3; let p = 1;
+  for (let l = 0; l < lv; l++) p *= (b - 1) / (b + l);
+  $("pEsfNote").textContent = lv ? `Llega al premio mayor más o menos 1 de cada ${Math.max(1, Math.round(1 / p))} personas.` : "";
+}
+["pEsf", "pEsfBase"].forEach(id => $(id).addEventListener("input", esfNote));
 $("bPrizes").onclick = () => { if (busy()) { toast("Espera a que termine la jugada."); return; } fill(cfg); openMenu(false); $("panel").hidden = false; };
 $("close").onclick = () => { $("panel").hidden = true; };
 $("restore").onclick = () => fill(Object.assign(JSON.parse(JSON.stringify(DEF)), { qCustom: lines("pQs"), machines: cfg.machines, active: cfg.active }));
 $("save").onclick = () => {
-  const rn = lines("pRain"), ld = lines("pLadder").slice(0, 8), wh = lines("pWheel").slice(0, 24);
+  const rn = lines("pRain"), ld = lines("pLadder").slice(0, 8), wh = lines("pWheel").slice(0, 24), es = lines("pEsf").slice(0, 6);
+  if (es.length < 2) { toast("La Esfera Rota necesita al menos 2 niveles."); return; }
+  cfg.esf = es; cfg.esfBase = Math.min(5, Math.max(2, +$("pEsfBase").value || 3));
   if (!rn.length) { toast("La Lluvia de Premios necesita al menos 1 premio."); return; }
   if (ld.length < 2) { toast("Mayor o Menor necesita al menos 2 niveles."); return; }
   if (wh.length < 2) { toast("La ruleta necesita al menos 2 premios."); return; }
@@ -1152,7 +1285,7 @@ $("save").onclick = () => {
   if (oldRain !== JSON.stringify(cfg.rain)) rainNew();
   if (!DU.busy && DU.phase !== "play") duelReset();
   if (!V.busy) { if (!V.out.length || oldPod !== cfg.podium.length) vStart(); else { vRender(); vUI(); } }
-  mmStart(); drawWheel(); Q.order = []; if (Q.phase === "idle") qIdle();
+  mmStart(); eStart(0); drawWheel(); Q.order = []; if (Q.phase === "idle") qIdle();
   $("panel").hidden = true; toast(dbm !== (Math.round(+$("pDuelBomb").value) || 0) ? `Guardado. Bombas ajustadas a ${dbm} para que siempre haya ganador.` : "Guardado");
 };
 
@@ -1188,7 +1321,7 @@ duelReset(); machUI();
 if (st.vivo && Array.isArray(st.vivo.alive) && st.vivo.total) { Object.assign(V, st.vivo, { busy: false }); vRender(); vMsg(st.vivo.msg || ""); vUI(); } else vStart();
 if (st.wheel) { W.spins = st.wheel.spins || 0; W.paid = st.wheel.paid || 0; }
 if (st.quiz && Array.isArray(st.quiz.order)) { Q.order = st.quiz.order; Q.i = st.quiz.i ?? -1; }
-wheelUI(); mmStart(); qIdle(); setSkin(cfg.skin); setGame(game); fit();
+wheelUI(); mmStart(); eStart(0); qIdle(); setSkin(cfg.skin); setGame(game); fit();
 document.fonts && document.fonts.ready.then(drawWheel);
 </script>
 
