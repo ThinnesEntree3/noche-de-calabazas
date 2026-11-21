@@ -76,6 +76,21 @@ h1 { font-family: var(--display); font-weight: 400; margin: 0; min-width: 0; lin
 
 .mach-btn b { color: var(--accent); }
 
+/* ===== Último Vivo ===== */
+.vivo-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 800; font-size: clamp(1rem, 2.8cqi, 1.8rem); font-variant-numeric: tabular-nums; }
+.vivo-top b { color: var(--accent); font-size: 1.3em; }
+.podium { display: flex; gap: 8px; flex-wrap: wrap; }
+.podium span { background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: clamp(.8rem, 1.9cqi, 1.1rem); }
+.podium span b { color: var(--accent); font-size: 1em; }
+.gift.out { background: #0b1410; color: #33453d; box-shadow: none; border: 2px solid #1c2a24; text-shadow: none; }
+.gift.out::after { content: "FUERA"; position: absolute; bottom: 8%; font-family: var(--body); font-weight: 800; font-size: clamp(.5rem, 1.2cqi, .8rem); letter-spacing: .14em; color: var(--hot); }
+.gift.out.hot { background: var(--good); color: #082014; }
+.gift.winner { background: var(--accent); color: #1b1404; text-shadow: none; box-shadow: 0 0 0 3px #fff; }
+.gift.winner::after { content: none; }
+.gift .place { position: absolute; top: -8px; right: -6px; background: #fff; color: #1b1404; font-family: var(--body); font-weight: 800; font-size: clamp(.6rem, 1.4cqi, .95rem); border-radius: 999px; padding: 2px 7px; text-shadow: none; }
+.gift.back { animation: back 1.4s ease-out; }
+@keyframes back { 0%, 40% { box-shadow: 0 0 0 4px var(--good), 0 0 40px var(--good); transform: scale(1.15); } }
+
 /* ===== Duelo de la Bomba ===== */
 .duel { width: min(100%, 1180px); display: grid; gap: 14px; justify-items: center; }
 .finalists { display: flex; gap: clamp(8px, 2cqi, 20px); justify-content: center; flex-wrap: wrap; }
@@ -239,6 +254,21 @@ body.tv { overflow: hidden; }
     </div>
   </section>
 
+  <!-- Último Vivo -->
+  <section class="stage" id="sVivo" hidden>
+    <div class="rain-wrap">
+      <div class="vivo-top"><span>Quedan <b id="vAlive">0</b> de <span id="vTotal">0</span></span><div class="podium" id="vPodium"></div></div>
+      <div class="gifts" id="vGrid"></div>
+      <p class="status" id="vMsg" aria-live="polite"></p>
+      <div class="actions">
+        <button class="big hot" id="v1">¡FUERA!</button>
+        <button class="big" id="v3">TRIPLE</button>
+        <button class="chip mach-btn" id="vMach">Máquinas <b class="machCount">30</b></button>
+        <button class="chip" id="vReset">Nueva partida</button>
+      </div>
+    </div>
+  </section>
+
   <!-- Duelo de la Bomba -->
   <section class="stage" id="sDuel" hidden>
     <div class="duel">
@@ -325,6 +355,7 @@ body.tv { overflow: hidden; }
   <h2>Juegos</h2>
   <div class="games">
     <button class="game" data-g="rain"><i>Todo el salón</i><b>Lluvia de Premios</b><span>Sorteo por número: el que sale, gana</span></button>
+    <button class="game" data-g="vivo"><i>Todo el salón</i><b>Último Vivo</b><span>Van saliendo máquinas; las últimas ganan</span></button>
     <button class="game" data-g="duel"><i>Sorteo + duelo</i><b>Duelo de la Bomba</b><span>Salen 3 máquinas y se turnan: la bomba elimina</span></button>
     <button class="game" data-g="mm"><i>Un jugador</i><b>Mayor o Menor</b><span>Adivina la carta y sube de nivel</span></button>
     <button class="game" data-g="wheel"><i>Uno tras otro</i><b>Ruleta Relámpago</b><span>Gira en 3 segundos, casi todo es premio</span></button>
@@ -363,6 +394,16 @@ body.tv { overflow: hidden; }
     <h3>Lluvia de Premios</h3>
     <p>Premios que se reparten al azar entre las máquinas marcadas, uno por línea. Si hay menos premios que máquinas, se repiten en orden. <b>Tú decides cuántos sorteos haces</b>: solo pagas los que salen.</p>
     <textarea id="pRain" aria-label="Premios de la lluvia"></textarea>
+  </section>
+  <section>
+    <h3>Último Vivo</h3>
+    <p>Premios del podio, del 1.er lugar hacia abajo, uno por línea. Juegan las máquinas marcadas.</p>
+    <textarea id="pPodium" aria-label="Premios del podio" style="min-height:100px"></textarea>
+    <div class="row">
+      <label for="pRev">Vuelven al juego por cada 10 máquinas <input id="pRev" class="chip" type="number" min="0" max="3" style="width:80px"></label>
+      <label for="pBonusOn"><input id="pBonusOn" type="checkbox"> Bono sorpresa</label>
+      <label for="pBonus">Valor del bono <input id="pBonus" class="chip" type="text" style="width:130px"></label>
+    </div>
   </section>
   <section>
     <h3>Duelo de la Bomba</h3>
@@ -473,6 +514,7 @@ const DEF = {
   rain: ["$20.000", "$30.000", "$20.000", "$50.000", "$20.000", "$30.000", "$20.000", "$20.000", "$30.000", "$100.000",
          "$20.000", "$30.000", "$20.000", "$40.000", "$20.000", "$30.000", "$20.000", "$20.000", "$50.000", "$20.000"],
   duelN: 3, duelBox: 12, duelBomb: 3, duelPrize: "$50.000",
+  podium: ["$80.000", "$50.000", "$30.000"], revPer10: 1, bonusOn: false, bonus: "$20.000",
   ladder: ["$20.000", "$30.000", "$40.000", "$60.000", "$100.000"], safe: 2,
   wheel: ["$20.000", "$30.000", "$20.000", "$50.000", "$20.000", "Gira otra vez", "$30.000", "$20.000", "$40.000", "Buena suerte para la próxima"],
   qPrize: "$20.000", qNeed: 3, qSec: 15, qCustom: [], qBase: true
@@ -484,7 +526,7 @@ const LS = {
 let cfg = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("fp2:cfg") || {});
 let game = LS.get("fp2:game") || "rain";
 let sound = true;
-function saveState() { LS.set("fp2:st", { rain: { prizes: RN.prizes, open: RN.open, paid: RN.paid }, wheel: { spins: W.spins, paid: W.paid }, quiz: { order: Q.order, i: Q.i } }); }
+function saveState() { LS.set("fp2:st", { vivo: V.total ? { list: V.list, alive: V.alive, out: V.out, places: V.places, total: V.total, revPlan: V.revPlan, msg: $("vMsg").textContent } : null, rain: { prizes: RN.prizes, open: RN.open, paid: RN.paid }, wheel: { spins: W.spins, paid: W.paid }, quiz: { order: Q.order, i: Q.i } }); }
 
 /* ---------- Sonido ---------- */
 let ac, nbuf;
@@ -630,6 +672,104 @@ $("rDraw").onclick = () => rainDraw(1);
 $("rDraw3").onclick = () => rainDraw(3);
 $("rReset").onclick = () => { if (!RN.busy) rainNew(); };
 
+/* ===================== ÚLTIMO VIVO ===================== */
+// Juegan las máquinas marcadas al empezar la partida. Van saliendo; las últimas ganan el podio.
+const V = { list: [], alive: [], out: [], places: {}, total: 0, revPlan: [], busy: false };
+const ORD = ["1.er", "2.º", "3.er", "4.º", "5.º", "6.º", "7.º", "8.º"];
+const vt = m => document.getElementById("v" + "t" + m);
+function vPlan(total) {
+  const n = Math.floor(total / 10) * (cfg.revPer10 || 0), lo = cfg.podium.length + 3, hi = total - 1, r = [];
+  for (let v = lo; v <= hi; v++) r.push(v);
+  return shuffle(r).slice(0, n).sort((a, b) => b - a);
+}
+function vStart() {
+  V.list = activeList(); V.total = V.list.length; V.alive = V.list.slice(); V.out = []; V.places = {}; V.busy = false;
+  V.revPlan = vPlan(V.total);
+  vRender(); vMsg(V.total > cfg.podium.length ? "Cada cliente juega con su máquina. ¡Que empiece!" : `Marca al menos ${cfg.podium.length + 1} máquinas para jugar.`); vUI(); saveState();
+}
+function vMsg(t) { $("vMsg").textContent = t; }
+function vBadge(el, p) { el.classList.add("winner"); el.insertAdjacentHTML("beforeend", `<span class="place">${ORD[p - 1] || p + "º"}</span>`); }
+function vRender() {
+  const g = $("vGrid"), n = V.list.length; g.innerHTML = "";
+  g.style.setProperty("--gc", n <= 10 ? Math.max(n, 1) : n <= 20 ? Math.ceil(n / 2) : n <= 30 ? Math.max(10, Math.ceil(n / 3)) : Math.max(10, Math.ceil(n / 4)));
+  V.list.forEach(m => {
+    const d = document.createElement("div"); d.className = "gift"; d.id = "vt" + m; d.textContent = m;
+    if (V.out.includes(m)) d.classList.add("out");
+    if (V.places[m]) vBadge(d, V.places[m]);
+    g.appendChild(d);
+  });
+  if (V.alive.length === 1 && V.total > 1) vBadge(vt(V.alive[0]), 1);
+  $("vPodium").innerHTML = cfg.podium.map((p, i) => `<span>${ORD[i] || (i + 1) + "º"} <b>${p}</b></span>`).join("");
+}
+function vUI() {
+  $("vAlive").textContent = V.alive.length; $("vTotal").textContent = V.total;
+  const done = V.alive.length <= 1 || V.total <= cfg.podium.length;
+  $("v1").disabled = V.busy || done;
+  $("v3").disabled = V.busy || done || V.alive.length <= cfg.podium.length + 1;
+}
+async function vScan(pool, target, steps) {
+  let prev;
+  for (let s = 0; s < steps; s++) {
+    const n = s === steps - 1 ? target : pick(pool);
+    if (prev) vt(prev).classList.remove("hot");
+    vt(n).classList.add("hot"); prev = n; sfx.tick();
+    await wait(reduce ? 25 : 45 + Math.pow(s / steps, 3) * 400);
+  }
+  await wait(300); vt(target).classList.remove("hot");
+}
+async function vOut(fast) {
+  const m = pick(V.alive);
+  await vScan(V.alive, m, fast ? 12 : 22);
+  V.alive = V.alive.filter(x => x !== m); V.out.push(m);
+  const el = vt(m); el.classList.add("out");
+  const place = V.alive.length + 1;
+  if (place <= cfg.podium.length) {
+    V.places[m] = place; vBadge(el, place);
+    vMsg(`La máquina ${m} queda en ${ORD[place - 1]} lugar`); vUI(); saveState();
+    sfx.win(); await show(cfg.podium[place - 1], { label: `Máquina ${m} · ${ORD[place - 1]} lugar` });
+  } else { sfx.lose(); vMsg(`Sale la máquina ${m}`); vUI(); saveState(); }
+  if (V.alive.length === 1) {
+    const w = V.alive[0]; vBadge(vt(w), 1); vMsg(`¡La máquina ${w} es el Último Vivo!`); saveState();
+    rain(90); sfx.big();
+    await show(cfg.podium[0], { label: `¡Máquina ${w}, el Último Vivo!` });
+  }
+}
+async function vRevive() {
+  const m = pick(V.out.filter(x => !V.places[x]));
+  if (!m) return vOut(false);
+  vMsg("¡Alguien vuelve al juego...!");
+  await vScan(V.out.filter(x => !V.places[x]), m, 18);
+  V.out = V.out.filter(x => x !== m); V.alive.push(m);
+  const el = vt(m); el.classList.remove("out"); el.classList.add("back");
+  sfx.ding(); const [x, y] = centerOf(el); burst(x, y, 60, .016);
+  vUI(); saveState();
+  await show(`Máquina ${m}`, { label: "¡Vuelve al juego!" });
+  vMsg(`La máquina ${m} volvió al juego`);
+}
+async function vBonus() {
+  const m = pick(V.alive);
+  vMsg("Bono sorpresa...");
+  await vScan(V.alive, m, 18);
+  sfx.win(); await show(cfg.bonus, { label: `Bono sorpresa para la máquina ${m}` });
+  vMsg(`La máquina ${m} ganó el bono y sigue en juego`);
+}
+async function vGo(times) {
+  if (V.busy || V.alive.length <= 1) return;
+  V.busy = true; vUI();
+  if (V.revPlan.length && V.out.length && V.alive.length <= V.revPlan[0]) { V.revPlan.shift(); await vRevive(); }
+  else if (cfg.bonusOn && times === 1 && V.alive.length > cfg.podium.length + 2 && Math.random() < .15) await vBonus();
+  else {
+    const n = times === 1 ? 1 : Math.max(1, Math.min(times, V.alive.length - cfg.podium.length));
+    vMsg(n > 1 ? "¡Salen tres!" : "¿Quién sale?");
+    for (let i = 0; i < n; i++) await vOut(n > 1);
+  }
+  V.busy = false; vUI(); saveState();
+}
+$("v1").onclick = () => vGo(1);
+$("v3").onclick = () => vGo(3);
+$("vReset").onclick = () => { if (!V.busy) vStart(); };
+$("vMach").onclick = () => openMach();
+
 /* ===================== DUELO DE LA BOMBA ===================== */
 const DU = { players: [], alive: [], turn: 0, bombs: [], opened: [], phase: "idle", busy: false };
 function duelReset() {
@@ -723,8 +863,8 @@ function machRender() {
   }
   $("machTotal").value = cfg.machines; machUI();
 }
-function machSave() { LS.set("fp2:cfg", cfg); machUI(); if (!RN.busy) rainRender(); saveState(); }
-function openMach() { if (RN.busy || DU.busy) { toast("Espera a que termine la jugada."); return; } openMenu(false); machRender(); $("machPanel").hidden = false; }
+function machSave() { LS.set("fp2:cfg", cfg); machUI(); if (!RN.busy) rainRender(); if (!V.busy && !V.out.length) vStart(); saveState(); }
+function openMach() { if (RN.busy || DU.busy || V.busy) { toast("Espera a que termine la jugada."); return; } openMenu(false); machRender(); $("machPanel").hidden = false; }
 $("rMach").onclick = $("dMach").onclick = $("bMach").onclick = openMach;
 $("machClose").onclick = () => { $("machPanel").hidden = true; };
 $("machAll").onclick = () => { cfg.active = Array.from({ length: cfg.machines }, (_, i) => i + 1); machRender(); machSave(); };
@@ -942,8 +1082,8 @@ $("qNext").onclick = qStart;
 $("qCall").onclick = qCall;
 
 /* ---------- Navegación ---------- */
-const META = { rain: ["sRain", "Lluvia de Premios", "Todo el salón"], duel: ["sDuel", "Duelo de la Bomba", "Sorteo + duelo"], mm: ["sMM", "Mayor o Menor", "Un jugador"], wheel: ["sWheel", "Ruleta Relámpago", "Uno tras otro"], quiz: ["sQuiz", "Trivia Express", "Un jugador"] };
-const busy = () => RN.busy || DU.busy || M.busy || W.spinning || ["running", "result", "calling"].includes(Q.phase) || !reveal.hidden;
+const META = { vivo: ["sVivo", "Último Vivo", "Todo el salón"], rain: ["sRain", "Lluvia de Premios", "Todo el salón"], duel: ["sDuel", "Duelo de la Bomba", "Sorteo + duelo"], mm: ["sMM", "Mayor o Menor", "Un jugador"], wheel: ["sWheel", "Ruleta Relámpago", "Uno tras otro"], quiz: ["sQuiz", "Trivia Express", "Un jugador"] };
+const busy = () => RN.busy || V.busy || DU.busy || M.busy || W.spinning || ["running", "result", "calling"].includes(Q.phase) || !reveal.hidden;
 function setGame(g) {
   if (!META[g]) g = "rain";
   game = g; LS.set("fp2:game", g);
@@ -978,6 +1118,7 @@ $("bFull").onclick = async () => {
 /* ---------- Panel ---------- */
 const lines = id => $(id).value.split("\n").map(s => s.trim()).filter(Boolean);
 function fill(c) {
+  $("pPodium").value = c.podium.join("\n"); $("pRev").value = c.revPer10; $("pBonusOn").checked = !!c.bonusOn; $("pBonus").value = c.bonus;
   $("pDuelN").value = String(c.duelN); $("pDuelBox").value = c.duelBox; $("pDuelBomb").value = c.duelBomb; $("pDuelPrize").value = c.duelPrize;
   $("pRain").value = c.rain.join("\n"); $("pLadder").value = c.ladder.join("\n");
   safeOpts(c.ladder.length, c.safe); $("pWheel").value = c.wheel.join("\n");
@@ -999,6 +1140,10 @@ $("save").onclick = () => {
   if (ld.length < 2) { toast("Mayor o Menor necesita al menos 2 niveles."); return; }
   if (wh.length < 2) { toast("La ruleta necesita al menos 2 premios."); return; }
   const oldRain = JSON.stringify(cfg.rain);
+  const pod = lines("pPodium").slice(0, 8);
+  if (!pod.length) { toast("Último Vivo necesita al menos 1 premio en el podio."); return; }
+  const oldPod = cfg.podium.length;
+  cfg.podium = pod; cfg.revPer10 = Math.min(3, Math.max(0, Math.round(+$("pRev").value) || 0)); cfg.bonusOn = $("pBonusOn").checked; cfg.bonus = $("pBonus").value.trim() || "$20.000";
   const dn = +$("pDuelN").value || 3, dbx = Math.min(20, Math.max(6, Math.round(+$("pDuelBox").value) || 12));
   const dbm = Math.min(dbx - 1, Math.max(dn - 1, Math.round(+$("pDuelBomb").value) || dn - 1));
   Object.assign(cfg, { duelN: dn, duelBox: dbx, duelBomb: dbm, duelPrize: $("pDuelPrize").value.trim() || "$50.000", rain: rn, ladder: ld, safe: +$("pSafe").value || 0, wheel: wh,
@@ -1006,6 +1151,7 @@ $("save").onclick = () => {
   LS.set("fp2:cfg", cfg);
   if (oldRain !== JSON.stringify(cfg.rain)) rainNew();
   if (!DU.busy && DU.phase !== "play") duelReset();
+  if (!V.busy) { if (!V.out.length || oldPod !== cfg.podium.length) vStart(); else { vRender(); vUI(); } }
   mmStart(); drawWheel(); Q.order = []; if (Q.phase === "idle") qIdle();
   $("panel").hidden = true; toast(dbm !== (Math.round(+$("pDuelBomb").value) || 0) ? `Guardado. Bombas ajustadas a ${dbm} para que siempre haya ganador.` : "Guardado");
 };
@@ -1039,6 +1185,7 @@ $("lights").innerHTML = "<i></i>".repeat(28);
 const st = LS.get("fp2:st") || {};
 if (st.rain && st.rain.prizes && !Array.isArray(st.rain.prizes) && Object.keys(st.rain.prizes).length) { RN.prizes = st.rain.prizes; RN.open = st.rain.open || {}; RN.paid = st.rain.paid || 0; rainRender(); $("rStatus").innerHTML = "Juegan las máquinas marcadas. <em>¡La que salga, gana!</em>"; } else rainNew();
 duelReset(); machUI();
+if (st.vivo && Array.isArray(st.vivo.alive) && st.vivo.total) { Object.assign(V, st.vivo, { busy: false }); vRender(); vMsg(st.vivo.msg || ""); vUI(); } else vStart();
 if (st.wheel) { W.spins = st.wheel.spins || 0; W.paid = st.wheel.paid || 0; }
 if (st.quiz && Array.isArray(st.quiz.order)) { Q.order = st.quiz.order; Q.i = st.quiz.i ?? -1; }
 wheelUI(); mmStart(); qIdle(); setSkin(cfg.skin); setGame(game); fit();
