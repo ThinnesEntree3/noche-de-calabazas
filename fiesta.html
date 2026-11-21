@@ -124,6 +124,41 @@ h1 { font-family: var(--display); font-weight: 400; margin: 0; min-width: 0; lin
 .ladder li.safe { border-color: color-mix(in srgb, var(--good) 60%, transparent); }
 .ladder li.safe small::after { content: " · asegurado"; color: var(--good); }
 .ladder li.done { color: var(--accent); }
+/* ===== Bingo Navideño ===== */
+.bingo { width: min(100%, 1240px); display: grid; grid-template-columns: minmax(0, 1fr) clamp(170px, 22cqi, 260px); gap: clamp(12px, 2cqi, 24px); align-items: start; }
+.bcards { display: grid; grid-template-columns: repeat(var(--gc, 10), minmax(0, 1fr)); gap: clamp(5px, 1cqi, 10px); min-width: 0; }
+.bcard { position: relative; border-radius: 12px; background: var(--bg-2); border: 2px solid var(--line); padding: 4px 4px 6px; display: grid; gap: 2px; justify-items: center; transition: transform .2s, box-shadow .2s; }
+.bcard > b { font-family: var(--display); font-weight: 400; font-size: clamp(1rem, 2.6cqi, 1.7rem); line-height: 1; color: var(--fg); }
+.syms { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; width: 100%; }
+.syms.s3 { grid-template-columns: repeat(3, 1fr); } .syms.s5 { grid-template-columns: repeat(3, 1fr); }
+.syms span { aspect-ratio: 1; border-radius: 8px; display: grid; place-items: center; font-size: clamp(.85rem, 2.2cqi, 1.45rem); line-height: 1; background: rgba(0,0,0,.25); filter: grayscale(.85) opacity(.55); transition: filter .3s, background .3s, transform .3s; }
+.syms span.hit { filter: none; background: color-mix(in srgb, var(--accent) 70%, transparent); transform: scale(1.06); }
+.bcard.near { border-color: var(--accent); box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 55%, transparent); animation: nearPulse 1.2s ease-in-out infinite; }
+@keyframes nearPulse { 50% { transform: scale(1.05); } }
+.bcard.done { background: var(--accent); border-color: #fff; animation: none; }
+.bcard.done > b { color: #1b1404; }
+.bcard.done .syms span { background: rgba(255,255,255,.5); }
+.bcard .place { position: absolute; top: -8px; right: -6px; background: #fff; color: #1b1404; font-weight: 800; font-size: clamp(.6rem, 1.3cqi, .9rem); border-radius: 999px; padding: 2px 7px; }
+.tombola { display: grid; gap: 10px; justify-items: center; position: sticky; top: 0; }
+.ball { width: clamp(120px, 18cqi, 200px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-size: clamp(3rem, 8cqi, 5.4rem); line-height: 1;
+  background: radial-gradient(circle at 35% 30%, #fff 0 18%, var(--hot) 60%, color-mix(in srgb, var(--hot) 55%, #000)); box-shadow: 0 12px 30px rgba(0,0,0,.45), inset 0 -8px 18px rgba(0,0,0,.3); }
+.ball.spin { animation: rollBall .14s linear infinite; }
+@keyframes rollBall { 50% { transform: translateY(-6px) rotate(8deg); } }
+.ball-name { font-family: var(--display); font-size: clamp(1.2rem, 3cqi, 2rem); color: var(--accent); text-align: center; min-height: 1.2em; }
+.drawn { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; max-width: 100%; }
+.drawn span { font-size: clamp(1rem, 2.2cqi, 1.5rem); background: var(--bg-2); border-radius: 8px; padding: 2px 4px; }
+.bpod { display: grid; gap: 4px; width: 100%; }
+.bpod span { display: flex; justify-content: space-between; gap: 8px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 5px 10px; font-weight: 700; font-size: clamp(.8rem, 1.7cqi, 1.05rem); }
+.bpod span b { color: var(--accent); }
+.bpod span.won { border-color: var(--good); }
+.bleft { display: grid; gap: 12px; min-width: 0; }
+#sBingo { justify-content: flex-start; }
+.tv .ball { width: 150px; font-size: 4.2rem; }
+.tv .tombola { gap: 8px; }
+.tv .tombola .big { font-size: 30px; padding: 8px 22px; }
+@container (max-width: 720px) { .bcards { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); } }
+@media (max-width: 720px) { .bingo { grid-template-columns: 1fr; } .tombola { position: static; order: -1; } }
+
 .orn-row { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: clamp(8px, 2.4cqi, 26px); width: min(100%, calc(var(--n, 3) * 190px)); align-items: start; }
 .orn { position: relative; background: none; border: 0; padding: 0; color: var(--fg); aspect-ratio: .8; min-width: 0; transform-origin: 50% 0; animation: sway 3s ease-in-out infinite; }
 .orn:nth-child(2n) { animation-delay: -1.5s; }
@@ -300,6 +335,21 @@ body.tv { overflow: hidden; }
     </div>
   </section>
 
+  <!-- Bingo Navideño -->
+  <section class="stage" id="sBingo" hidden>
+    <div class="bingo">
+      <div class="bleft"><div class="bcards" id="bCards"></div><p class="status" id="bMsg" aria-live="polite"></p></div>
+      <div class="tombola">
+        <div class="ball" id="bBall">?</div>
+        <div class="ball-name" id="bName">¡A jugar!</div>
+        <button class="big hot" id="bDraw">SACAR FIGURA</button>
+        <div class="drawn" id="bDrawn" aria-label="Figuras que ya salieron"></div>
+        <div class="bpod" id="bPod"></div>
+        <div class="actions" style="flex-wrap:nowrap"><button class="chip mach-btn" id="bMach2">Máquinas <b class="machCount">30</b></button><button class="chip" id="bReset">Nuevo bingo</button></div>
+      </div>
+    </div>
+  </section>
+
   <!-- La Esfera Rota -->
   <section class="stage" id="sEsf" hidden>
     <div class="mm-layout" id="esfLayout">
@@ -389,6 +439,7 @@ body.tv { overflow: hidden; }
     <button class="game" data-g="rain"><i>Todo el salón</i><b>Lluvia de Premios</b><span>Sorteo por número: el que sale, gana</span></button>
     <button class="game" data-g="vivo"><i>Todo el salón</i><b>Último Vivo</b><span>Van saliendo máquinas; las últimas ganan</span></button>
     <button class="game" data-g="duel"><i>Sorteo + duelo</i><b>Duelo de la Bomba</b><span>Salen 3 máquinas y se turnan: la bomba elimina</span></button>
+    <button class="game" data-g="bingo"><i>Todo el salón</i><b>Bingo Navideño</b><span>Cada máquina tiene su cartón en pantalla</span></button>
     <button class="game" data-g="esf"><i>Un jugador</i><b>La Esfera Rota</b><span>Escoge esferas del árbol; la rota elimina</span></button>
     <button class="game" data-g="mm"><i>Un jugador</i><b>Mayor o Menor</b><span>Adivina la carta y sube de nivel</span></button>
     <button class="game" data-g="wheel"><i>Uno tras otro</i><b>Ruleta Relámpago</b><span>Gira en 3 segundos, casi todo es premio</span></button>
@@ -447,6 +498,12 @@ body.tv { overflow: hidden; }
       <label for="pDuelPrize">Premio del ganador <input id="pDuelPrize" class="chip" type="text" style="width:130px"></label>
     </div>
     <p>Debe haber al menos una bomba menos que clientes (con 3 clientes, mínimo 2 bombas), así siempre queda un ganador.</p>
+  </section>
+  <section>
+    <h3>Bingo Navideño</h3>
+    <p>Premios del podio del bingo, del 1.er lugar hacia abajo. Gana la primera máquina que complete su cartón.</p>
+    <textarea id="pBingo" aria-label="Premios del bingo" style="min-height:100px"></textarea>
+    <label for="pBingoN">Figuras por cartón <select id="pBingoN" class="chip"><option value="3">3 (rápido)</option><option value="4">4</option><option value="5">5 (más largo)</option></select></label>
   </section>
   <section>
     <h3>La Esfera Rota</h3>
@@ -570,6 +627,7 @@ const DEF = {
   podium: ["$80.000", "$50.000", "$30.000"], revPer10: 1, bonusOn: false, bonus: "$20.000",
   ladder: ["$20.000", "$30.000", "$40.000", "$60.000", "$100.000"], safe: 2,
   esf: ["$20.000", "$30.000", "$40.000", "$50.000"], esfBase: 3,
+  bingo: ["$50.000", "$30.000", "$20.000"], bingoN: 4,
   wheel: ["$20.000", "$30.000", "$20.000", "$50.000", "$20.000", "Gira otra vez", "$30.000", "$20.000", "$40.000", "Buena suerte para la próxima"],
   qPrize: "$20.000", qNeed: 3, qSec: 15, qCustom: [], qBase: true
 };
@@ -580,7 +638,7 @@ const LS = {
 let cfg = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("fp2:cfg") || {});
 let game = LS.get("fp2:game") || "rain";
 let sound = true;
-function saveState() { LS.set("fp2:st", { vivo: V.total ? { list: V.list, alive: V.alive, out: V.out, places: V.places, total: V.total, revPlan: V.revPlan, msg: $("vMsg").textContent } : null, rain: { prizes: RN.prizes, open: RN.open, paid: RN.paid }, wheel: { spins: W.spins, paid: W.paid }, quiz: { order: Q.order, i: Q.i } }); }
+function saveState() { LS.set("fp2:st", { bingo: B.cards ? { cards: B.cards, drawn: B.drawn, places: B.places, msg: $("bMsg").textContent } : null, vivo: V.total ? { list: V.list, alive: V.alive, out: V.out, places: V.places, total: V.total, revPlan: V.revPlan, msg: $("vMsg").textContent } : null, rain: { prizes: RN.prizes, open: RN.open, paid: RN.paid }, wheel: { spins: W.spins, paid: W.paid }, quiz: { order: Q.order, i: Q.i } }); }
 
 /* ---------- Sonido ---------- */
 let ac, nbuf;
@@ -918,8 +976,8 @@ function machRender() {
   }
   $("machTotal").value = cfg.machines; machUI();
 }
-function machSave() { LS.set("fp2:cfg", cfg); machUI(); if (!RN.busy) rainRender(); if (!V.busy && !V.out.length) vStart(); saveState(); }
-function openMach() { if (RN.busy || DU.busy || V.busy) { toast("Espera a que termine la jugada."); return; } openMenu(false); machRender(); $("machPanel").hidden = false; }
+function machSave() { LS.set("fp2:cfg", cfg); machUI(); if (!RN.busy) rainRender(); if (!V.busy && !V.out.length) vStart(); if (!B.busy && !B.drawn.length) bNew(); saveState(); }
+function openMach() { if (RN.busy || DU.busy || V.busy || B.busy) { toast("Espera a que termine la jugada."); return; } openMenu(false); machRender(); $("machPanel").hidden = false; }
 $("rMach").onclick = $("dMach").onclick = $("bMach").onclick = openMach;
 $("machClose").onclick = () => { $("machPanel").hidden = true; };
 $("machAll").onclick = () => { cfg.active = Array.from({ length: cfg.machines }, (_, i) => i + 1); machRender(); machSave(); };
@@ -931,6 +989,91 @@ $("machTotal").addEventListener("change", () => {
   cfg.active = cfg.active.filter(i => i <= n);
   machRender(); machSave();
 });
+
+/* ===================== BINGO NAVIDEÑO ===================== */
+// Cada máquina marcada recibe un cartón con N figuras distintas de 12. Se sacan figuras; la primera que completa gana.
+const SYM = [["🎄", "el árbol"], ["⭐", "la estrella"], ["🔔", "la campana"], ["🎁", "el regalo"], ["🕯️", "la vela"], ["⛄", "el muñeco de nieve"],
+  ["🦌", "el reno"], ["🧦", "la media"], ["🎅", "Papá Noel"], ["❄️", "el copo de nieve"], ["🍪", "la galleta"], ["🍬", "el dulce"]];
+const B = { cards: null, drawn: [], places: {}, busy: false };
+const bc = m => document.getElementById("bc" + m);
+const bHits = m => B.cards[m].filter(k => B.drawn.includes(k)).length;
+function bNew() {
+  B.cards = {}; B.drawn = []; B.places = {}; B.busy = false;
+  const n = cfg.bingoN || 4;
+  activeList().forEach(m => { B.cards[m] = shuffle([...Array(SYM.length).keys()]).slice(0, n).sort((a, b) => a - b); });
+  $("bBall").textContent = "?"; $("bName").textContent = "¡A jugar!";
+  bRender(); bMsg(`Cada máquina tiene ${n} figuras. Cuando salgan todas las suyas: <em>¡Bingo!</em>`); bUI(); saveState();
+}
+function bMsg(h) { $("bMsg").innerHTML = h; }
+function bRender() {
+  const g = $("bCards"), ms = Object.keys(B.cards).map(Number).sort((a, b) => a - b), n = ms.length, k = cfg.bingoN || 4;
+  g.style.setProperty("--gc", n <= 12 ? Math.min(6, Math.max(n, 1)) : n <= 30 ? 10 : 12);
+  g.innerHTML = "";
+  ms.forEach(m => {
+    const d = document.createElement("div"); d.className = "bcard"; d.id = "bc" + m;
+    d.innerHTML = `<b>${m}</b><div class="syms s${B.cards[m].length}">${B.cards[m].map(x => `<span data-s="${x}" class="${B.drawn.includes(x) ? "hit" : ""}">${SYM[x][0]}</span>`).join("")}</div>`;
+    g.appendChild(d); bState(m);
+  });
+  $("bDrawn").innerHTML = B.drawn.map(x => `<span title="${SYM[x][1]}">${SYM[x][0]}</span>`).join("");
+  $("bPod").innerHTML = cfg.bingo.map((p, i) => { const w = Object.keys(B.places).find(m => B.places[m] === i + 1); return `<span class="${w ? "won" : ""}">${ORD[i] || i + 1 + "º"} ${w ? "· Máq. " + w : ""}<b>${p}</b></span>`; }).join("");
+}
+function bState(m) {
+  const d = bc(m); if (!d) return;
+  const left = B.cards[m].length - bHits(m);
+  d.classList.toggle("near", left === 1 && !B.places[m]);
+  d.classList.toggle("done", !!B.places[m]);
+  d.querySelector(".place")?.remove();
+  if (B.places[m]) d.insertAdjacentHTML("beforeend", `<span class="place">${ORD[B.places[m] - 1] || B.places[m] + "º"}</span>`);
+}
+function bUI() {
+  const full = Object.keys(B.places).length >= Math.min(cfg.bingo.length, Object.keys(B.cards || {}).length);
+  $("bDraw").disabled = B.busy || full || B.drawn.length >= SYM.length || !Object.keys(B.cards || {}).length;
+}
+async function bDraw() {
+  if (B.busy) return;
+  B.busy = true; bUI();
+  const left = [...Array(SYM.length).keys()].filter(k => !B.drawn.includes(k)), x = pick(left);
+  const ball = $("bBall"); ball.classList.add("spin"); $("bName").textContent = "...";
+  for (let i = 0; i < 16; i++) { ball.textContent = SYM[pick(left)][0]; sfx.tick(); await wait(reduce ? 20 : 50 + Math.pow(i / 16, 3) * 260); }
+  ball.classList.remove("spin"); ball.textContent = SYM[x][0];
+  $("bName").textContent = "¡Salió " + SYM[x][1] + "!"; sfx.ding(); if (cfg.skin === "nav") bells();
+  B.drawn.push(x);
+  $("bDrawn").insertAdjacentHTML("beforeend", `<span title="${SYM[x][1]}">${SYM[x][0]}</span>`);
+  // Marca la figura en todos los cartones
+  const ms = Object.keys(B.cards).map(Number);
+  ms.forEach(m => { if (B.cards[m].includes(x)) { const sp = bc(m).querySelector(`[data-s="${x}"]`); sp.classList.add("hit"); } bState(m); });
+  saveState();
+  await wait(reduce ? 200 : 900);
+  const newWin = ms.filter(m => !B.places[m] && bHits(m) === B.cards[m].length);
+  const near = ms.filter(m => !B.places[m] && B.cards[m].length - bHits(m) === 1);
+  if (newWin.length) await bWinners(newWin);
+  else bMsg(near.length ? `¡A ${near.length === 1 ? "la máquina " + near[0] + " le falta" : near.length + " máquinas les falta"} <em>una figura</em>!` : `Salió ${SYM[x][1]}. ¡Sigue la tómbola!`);
+  B.busy = false; bUI(); saveState();
+}
+async function bWinners(list) {
+  let pool = list.slice();
+  while (pool.length) {
+    const place = Object.keys(B.places).length + 1;
+    if (place > cfg.bingo.length) { bMsg(`También completaron: <em>${pool.join(", ")}</em>, pero el podio ya está lleno.`); break; }
+    let m = pool[0];
+    if (pool.length > 1) {
+      bMsg(`¡${pool.length} máquinas hicieron bingo a la vez! Desempate...`);
+      m = pick(pool); let prev;
+      for (let s = 0; s < 16; s++) { const c = s === 15 ? m : pick(pool); if (prev) bc(prev).style.outline = ""; bc(c).style.outline = "4px solid #fff"; prev = c; sfx.tick(); await wait(reduce ? 20 : 60 + Math.pow(s / 16, 3) * 300); }
+      bc(m).style.outline = "";
+    }
+    pool = pool.filter(x => x !== m);
+    B.places[m] = place; bState(m); bRender();
+    const [x, y] = centerOf(bc(m)); burst(x, y, 70, .018);
+    if (place === 1) { rain(90); sfx.big(); } else sfx.win();
+    bMsg(`¡Bingo de la máquina <em>${m}</em>!`); saveState();
+    await show(cfg.bingo[place - 1], { label: `¡Bingo! Máquina ${m} · ${ORD[place - 1]} lugar` });
+  }
+  if (Object.keys(B.places).length >= Math.min(cfg.bingo.length, Object.keys(B.cards).length)) bMsg("¡Podio completo! Toca <em>Nuevo bingo</em> para otra ronda.");
+}
+$("bDraw").onclick = bDraw;
+$("bReset").onclick = () => { if (!B.busy) bNew(); };
+$("bMach2").onclick = () => openMach();
 
 /* ===================== LA ESFERA ROTA ===================== */
 // Igual que la Calabaza Envenenada: en el nivel l hay (base + l) esferas y (l + 1) rotas.
@@ -1206,8 +1349,8 @@ $("qNext").onclick = qStart;
 $("qCall").onclick = qCall;
 
 /* ---------- Navegación ---------- */
-const META = { vivo: ["sVivo", "Último Vivo", "Todo el salón"], esf: ["sEsf", "La Esfera Rota", "Un jugador"], rain: ["sRain", "Lluvia de Premios", "Todo el salón"], duel: ["sDuel", "Duelo de la Bomba", "Sorteo + duelo"], mm: ["sMM", "Mayor o Menor", "Un jugador"], wheel: ["sWheel", "Ruleta Relámpago", "Uno tras otro"], quiz: ["sQuiz", "Trivia Express", "Un jugador"] };
-const busy = () => RN.busy || V.busy || E.busy || DU.busy || M.busy || W.spinning || ["running", "result", "calling"].includes(Q.phase) || !reveal.hidden;
+const META = { bingo: ["sBingo", "Bingo Navideño", "Todo el salón"], vivo: ["sVivo", "Último Vivo", "Todo el salón"], esf: ["sEsf", "La Esfera Rota", "Un jugador"], rain: ["sRain", "Lluvia de Premios", "Todo el salón"], duel: ["sDuel", "Duelo de la Bomba", "Sorteo + duelo"], mm: ["sMM", "Mayor o Menor", "Un jugador"], wheel: ["sWheel", "Ruleta Relámpago", "Uno tras otro"], quiz: ["sQuiz", "Trivia Express", "Un jugador"] };
+const busy = () => RN.busy || B.busy || V.busy || E.busy || DU.busy || M.busy || W.spinning || ["running", "result", "calling"].includes(Q.phase) || !reveal.hidden;
 function setGame(g) {
   if (!META[g]) g = "rain";
   game = g; LS.set("fp2:game", g);
@@ -1245,6 +1388,7 @@ function fill(c) {
   $("pPodium").value = c.podium.join("\n"); $("pRev").value = c.revPer10; $("pBonusOn").checked = !!c.bonusOn; $("pBonus").value = c.bonus;
   $("pDuelN").value = String(c.duelN); $("pDuelBox").value = c.duelBox; $("pDuelBomb").value = c.duelBomb; $("pDuelPrize").value = c.duelPrize;
   $("pRain").value = c.rain.join("\n"); $("pLadder").value = c.ladder.join("\n");
+  $("pBingo").value = (c.bingo || DEF.bingo).join("\n"); $("pBingoN").value = String(c.bingoN || 4);
   $("pEsf").value = (c.esf || DEF.esf).join("\n"); $("pEsfBase").value = String(c.esfBase || 3); esfNote();
   safeOpts(c.ladder.length, c.safe); $("pWheel").value = c.wheel.join("\n");
   $("pQPrize").value = c.qPrize; $("pQNeed").value = String(c.qNeed || 3); $("pQSec").value = c.qSec; $("pQs").value = c.qCustom.join("\n"); $("pQBase").checked = !!c.qBase; qNote();
@@ -1268,6 +1412,10 @@ $("restore").onclick = () => fill(Object.assign(JSON.parse(JSON.stringify(DEF)),
 $("save").onclick = () => {
   const rn = lines("pRain"), ld = lines("pLadder").slice(0, 8), wh = lines("pWheel").slice(0, 24), es = lines("pEsf").slice(0, 6);
   if (es.length < 2) { toast("La Esfera Rota necesita al menos 2 niveles."); return; }
+  const bg = lines("pBingo").slice(0, 6);
+  if (!bg.length) { toast("El bingo necesita al menos 1 premio."); return; }
+  const oldBN = cfg.bingoN; cfg.bingo = bg; cfg.bingoN = Math.min(5, Math.max(3, +$("pBingoN").value || 4));
+  if (!B.busy && (!B.drawn.length || oldBN !== cfg.bingoN)) bNew(); else if (!B.busy) { bRender(); bUI(); }
   cfg.esf = es; cfg.esfBase = Math.min(5, Math.max(2, +$("pEsfBase").value || 3));
   if (!rn.length) { toast("La Lluvia de Premios necesita al menos 1 premio."); return; }
   if (ld.length < 2) { toast("Mayor o Menor necesita al menos 2 niveles."); return; }
@@ -1318,6 +1466,7 @@ $("lights").innerHTML = "<i></i>".repeat(28);
 const st = LS.get("fp2:st") || {};
 if (st.rain && st.rain.prizes && !Array.isArray(st.rain.prizes) && Object.keys(st.rain.prizes).length) { RN.prizes = st.rain.prizes; RN.open = st.rain.open || {}; RN.paid = st.rain.paid || 0; rainRender(); $("rStatus").innerHTML = "Juegan las máquinas marcadas. <em>¡La que salga, gana!</em>"; } else rainNew();
 duelReset(); machUI();
+if (st.bingo && st.bingo.cards && Object.keys(st.bingo.cards).length) { Object.assign(B, { cards: st.bingo.cards, drawn: st.bingo.drawn || [], places: st.bingo.places || {}, busy: false }); bRender(); $("bMsg").textContent = st.bingo.msg || ""; bUI(); const lx = B.drawn[B.drawn.length - 1]; if (lx !== undefined) { $("bBall").textContent = SYM[lx][0]; $("bName").textContent = "Salió " + SYM[lx][1]; } } else bNew();
 if (st.vivo && Array.isArray(st.vivo.alive) && st.vivo.total) { Object.assign(V, st.vivo, { busy: false }); vRender(); vMsg(st.vivo.msg || ""); vUI(); } else vStart();
 if (st.wheel) { W.spins = st.wheel.spins || 0; W.paid = st.wheel.paid || 0; }
 if (st.quiz && Array.isArray(st.quiz.order)) { Q.order = st.quiz.order; Q.i = st.quiz.i ?? -1; }
