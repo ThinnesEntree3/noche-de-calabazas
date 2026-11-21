@@ -7,6 +7,8 @@ on:
       - '*.html'
       - '*.jpg'
       - '*.png'
+      - 'fiesta-app/**'
+      - '.github/workflows/build-fiesta.yml'
   workflow_dispatch:
 
 permissions:
